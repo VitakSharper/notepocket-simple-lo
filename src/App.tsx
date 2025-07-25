@@ -9,7 +9,7 @@ import { NotesGrid } from './components/NotesGrid';
 import { CreateNoteModal } from './components/CreateNoteModal';
 import { searchNotes, filterNotes, sortNotes } from './lib/utils';
 import { useDatabase } from './hooks/useDatabase';
-import { demoNotes, demoFolders } from './lib/demoData';
+import { initializeDemoData } from './lib/database/init';
 import { ExportData } from './lib/export';
 
 function App() {
@@ -18,11 +18,11 @@ function App() {
     folders,
     isLoading,
     error,
-    createNote: dbCreateNote,
-    updateNote: dbUpdateNote,
-    deleteNote: dbDeleteNote,
-    createFolder: dbCreateFolder,
-    deleteFolder: dbDeleteFolder,
+    createNote,
+    updateNote,
+    deleteNote,
+    createFolder,
+    deleteFolder,
     clearError,
     importData,
   } = useDatabase();
@@ -39,41 +39,20 @@ function App() {
 
   // Initialize with demo data on first visit if database is empty
   useEffect(() => {
-    const initializeDemoData = async () => {
+    const initializeDatabase = async () => {
       if (!isLoading && notes.length === 0 && folders.length === 0) {
         try {
-          // Create demo folders first
-          for (const folder of demoFolders) {
-            await dbCreateFolder({
-              name: folder.name,
-              color: folder.color,
-            });
-          }
-          
-          // Then create demo notes
-          for (const note of demoNotes) {
-            await dbCreateNote({
-              title: note.title,
-              content: note.content,
-              type: note.type,
-              tags: note.tags,
-              folderId: note.folderId,
-              isFavorite: note.isFavorite,
-              fileUrl: note.fileUrl,
-              fileName: note.fileName,
-              fileSize: note.fileSize,
-              fileMimeType: note.fileMimeType,
-              embeddedImages: note.embeddedImages,
-            });
-          }
+          await initializeDemoData();
+          // Refresh data after demo initialization
+          window.location.reload();
         } catch (err) {
           console.error('Failed to initialize demo data:', err);
         }
       }
     };
 
-    initializeDemoData();
-  }, [isLoading, notes.length, folders.length, dbCreateNote, dbCreateFolder]);
+    initializeDatabase();
+  }, [isLoading, notes.length, folders.length]);
 
   // Filter and search notes
   const filteredNotes = () => {
@@ -98,7 +77,7 @@ function App() {
 
   const handleCreateNote = async (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      await dbCreateNote(note);
+      await createNote(note);
       setCreateModalOpen(false);
       setSnackbarMessage('Note created successfully');
       setSnackbarOpen(true);
@@ -111,7 +90,7 @@ function App() {
 
   const handleUpdateNote = async (noteId: string, updates: Partial<Note>) => {
     try {
-      await dbUpdateNote(noteId, updates);
+      await updateNote(noteId, updates);
       setSnackbarMessage('Note updated successfully');
       setSnackbarOpen(true);
     } catch (err) {
@@ -123,7 +102,7 @@ function App() {
 
   const handleDeleteNote = async (noteId: string) => {
     try {
-      await dbDeleteNote(noteId);
+      await deleteNote(noteId);
       setSnackbarMessage('Note deleted successfully');
       setSnackbarOpen(true);
     } catch (err) {
@@ -135,7 +114,7 @@ function App() {
 
   const handleCreateFolder = async (name: string, color: string) => {
     try {
-      await dbCreateFolder({ name, color });
+      await createFolder({ name, color });
       setSnackbarMessage('Folder created successfully');
       setSnackbarOpen(true);
     } catch (err) {
@@ -147,7 +126,7 @@ function App() {
 
   const handleDeleteFolder = async (folderId: string) => {
     try {
-      await dbDeleteFolder(folderId);
+      await deleteFolder(folderId);
       
       // Clear selection if deleted folder was selected
       if (selectedFolder === folderId) {

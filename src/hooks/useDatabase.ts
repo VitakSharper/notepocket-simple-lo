@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Note, Folder } from '../lib/types';
-import { db } from '../lib/database';
+import { databaseService } from '../lib/database/service';
 
 /**
  * React hook for database operations
@@ -16,7 +16,6 @@ export function useDatabase() {
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        await db.init();
         await loadData();
       } catch (err) {
         setError('Failed to initialize database');
@@ -32,8 +31,8 @@ export function useDatabase() {
   const loadData = async () => {
     try {
       const [notesData, foldersData] = await Promise.all([
-        db.getAllNotes(),
-        db.getAllFolders(),
+        databaseService.getAllNotes(),
+        databaseService.getAllFolders(),
       ]);
       
       setNotes(notesData);
@@ -48,7 +47,7 @@ export function useDatabase() {
   // Note operations
   const createNote = useCallback(async (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const newNote = await db.createNote(note);
+      const newNote = await databaseService.createNote(note);
       setNotes(prev => [...prev, newNote]);
       return newNote;
     } catch (err) {
@@ -59,7 +58,7 @@ export function useDatabase() {
 
   const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
     try {
-      const updatedNote = await db.updateNote(id, updates);
+      const updatedNote = await databaseService.updateNote(id, updates);
       if (updatedNote) {
         setNotes(prev => prev.map(note => 
           note.id === id ? updatedNote : note
@@ -74,7 +73,7 @@ export function useDatabase() {
 
   const deleteNote = useCallback(async (id: string) => {
     try {
-      const success = await db.deleteNote(id);
+      const success = await databaseService.deleteNote(id);
       if (success) {
         setNotes(prev => prev.filter(note => note.id !== id));
       }
@@ -87,7 +86,7 @@ export function useDatabase() {
 
   const getNoteById = useCallback(async (id: string) => {
     try {
-      return await db.getNoteById(id);
+      return await databaseService.getNoteById(id);
     } catch (err) {
       setError('Failed to get note');
       throw err;
@@ -97,7 +96,7 @@ export function useDatabase() {
   // Folder operations
   const createFolder = useCallback(async (folder: Omit<Folder, 'id' | 'createdAt'>) => {
     try {
-      const newFolder = await db.createFolder(folder);
+      const newFolder = await databaseService.createFolder(folder);
       setFolders(prev => [...prev, newFolder]);
       return newFolder;
     } catch (err) {
@@ -108,7 +107,7 @@ export function useDatabase() {
 
   const deleteFolder = useCallback(async (id: string) => {
     try {
-      const success = await db.deleteFolder(id);
+      const success = await databaseService.deleteFolder(id);
       if (success) {
         setFolders(prev => prev.filter(folder => folder.id !== id));
         // Update notes that were in this folder
@@ -126,25 +125,16 @@ export function useDatabase() {
   // Search and filter operations
   const searchNotes = useCallback(async (query: string) => {
     try {
-      return await db.searchNotes(query);
+      return await databaseService.searchNotes(query);
     } catch (err) {
       setError('Failed to search notes');
       throw err;
     }
   }, []);
 
-  const getNotesByType = useCallback(async (type: Note['type']) => {
-    try {
-      return await db.getNotesByType(type);
-    } catch (err) {
-      setError('Failed to get notes by type');
-      throw err;
-    }
-  }, []);
-
   const getNotesByFolder = useCallback(async (folderId: string) => {
     try {
-      return await db.getNotesByFolder(folderId);
+      return await databaseService.getNotesByFolder(folderId);
     } catch (err) {
       setError('Failed to get notes by folder');
       throw err;
@@ -153,28 +143,9 @@ export function useDatabase() {
 
   const getFavoriteNotes = useCallback(async () => {
     try {
-      return await db.getFavoriteNotes();
+      return await databaseService.getFavoriteNotes();
     } catch (err) {
       setError('Failed to get favorite notes');
-      throw err;
-    }
-  }, []);
-
-  // File operations
-  const storeFile = useCallback(async (noteId: string, file: File) => {
-    try {
-      return await db.storeFile(noteId, file);
-    } catch (err) {
-      setError('Failed to store file');
-      throw err;
-    }
-  }, []);
-
-  const getFile = useCallback(async (fileId: string) => {
-    try {
-      return await db.getFile(fileId);
-    } catch (err) {
-      setError('Failed to get file');
       throw err;
     }
   }, []);
@@ -182,7 +153,18 @@ export function useDatabase() {
   // Database maintenance
   const clearDatabase = useCallback(async () => {
     try {
-      await db.clearDatabase();
+      // Since we don't have a clear method in the service, we'll delete all data
+      const allNotes = await databaseService.getAllNotes();
+      const allFolders = await databaseService.getAllFolders();
+      
+      for (const note of allNotes) {
+        await databaseService.deleteNote(note.id);
+      }
+      
+      for (const folder of allFolders) {
+        await databaseService.deleteFolder(folder.id);
+      }
+      
       setNotes([]);
       setFolders([]);
     } catch (err) {
@@ -193,7 +175,13 @@ export function useDatabase() {
 
   const getDatabaseSize = useCallback(async () => {
     try {
-      return await db.getDatabaseSize();
+      const stats = await databaseService.getStats();
+      return {
+        totalNotes: stats.totalNotes,
+        totalFolders: stats.totalFolders,
+        favoriteNotes: stats.favoriteNotes,
+        notesByType: stats.notesByType,
+      };
     } catch (err) {
       setError('Failed to get database size');
       throw err;
@@ -213,44 +201,17 @@ export function useDatabase() {
   // Import data from backup
   const importData = useCallback(async (importedNotes: Note[], importedFolders: Folder[]) => {
     try {
-      // Import folders first to ensure they exist for notes
-      const folderIdMap = new Map<string, string>();
-      for (const folder of importedFolders) {
-        // Check if folder already exists by name
-        const existingFolder = folders.find(f => f.name === folder.name);
-        if (!existingFolder) {
-          const newFolder = await db.createFolder({
-            name: folder.name,
-            color: folder.color,
-          });
-          folderIdMap.set(folder.id, newFolder.id);
-          setFolders(prev => [...prev, newFolder]);
-        } else {
-          folderIdMap.set(folder.id, existingFolder.id);
-        }
-      }
-
-      // Import notes
-      const newNotes: Note[] = [];
-      for (const note of importedNotes) {
-        const noteData = {
-          ...note,
-          folderId: note.folderId && folderIdMap.has(note.folderId) 
-            ? folderIdMap.get(note.folderId)
-            : note.folderId,
-        };
-        
-        const newNote = await db.createNote(noteData);
-        newNotes.push(newNote);
-      }
+      const result = await databaseService.importData(importedNotes, importedFolders);
       
-      setNotes(prev => [...prev, ...newNotes]);
-      return { notesCount: newNotes.length, foldersCount: importedFolders.length };
+      // Refresh the local state after import
+      await loadData();
+      
+      return { notesCount: result.notes, foldersCount: result.folders };
     } catch (err) {
       setError('Failed to import data');
       throw err;
     }
-  }, [folders]);
+  }, []);
 
   return {
     // State
@@ -271,13 +232,8 @@ export function useDatabase() {
     
     // Search operations
     searchNotes,
-    getNotesByType,
     getNotesByFolder,
     getFavoriteNotes,
-    
-    // File operations
-    storeFile,
-    getFile,
     
     // Database maintenance
     clearDatabase,
