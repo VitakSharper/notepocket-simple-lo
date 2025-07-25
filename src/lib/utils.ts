@@ -19,16 +19,17 @@ export const formatFileSize = (bytes: number): string => {
 };
 
 // Date formatter
-export const formatDate = (date: Date): string => {
+export const formatDate = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
-  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffTime = Math.abs(now.getTime() - dateObj.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
   if (diffDays === 1) return 'Today';
   if (diffDays === 2) return 'Yesterday';
   if (diffDays <= 7) return `${diffDays - 1} days ago`;
   
-  return date.toLocaleDateString();
+  return dateObj.toLocaleDateString();
 };
 
 // Get file extension from filename
@@ -101,7 +102,10 @@ export const sortNotes = (notes: Note[], sortBy: 'date' | 'title' | 'type'): Not
         return a.type.localeCompare(b.type);
       case 'date':
       default:
-        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        // Handle both Date objects and date strings
+        const dateA = typeof a.updatedAt === 'string' ? new Date(a.updatedAt) : a.updatedAt;
+        const dateB = typeof b.updatedAt === 'string' ? new Date(b.updatedAt) : b.updatedAt;
+        return dateB.getTime() - dateA.getTime();
     }
   });
 };

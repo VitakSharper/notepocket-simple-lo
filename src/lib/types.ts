@@ -6,8 +6,8 @@ export interface Note {
   tags: string[];
   folderId?: string;
   isFavorite: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
@@ -18,7 +18,7 @@ export interface Folder {
   id: string;
   name: string;
   color: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 export interface SearchFilters {
