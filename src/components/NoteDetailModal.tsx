@@ -1,47 +1,47 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Star, PencilSimple, Trash, FileText, Image, File } from '@phosphor-icons/react';
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  Chip,
+  IconButton
+} from '@mui/material';
+import {
+  Star as StarIcon,
+  StarOutline as StarOutlineIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Close as CloseIcon
+} from '@mui/icons-material';
 import { Note, Folder } from '@/lib/types';
-import { formatDate, formatFileSize } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { NoteContentRenderer } from './NoteContentRenderer';
+import { EditNoteModal } from './EditNoteModal';
 
 interface NoteDetailModalProps {
-  note: Note | null;
+  note: Note;
   folders: Folder[];
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   onUpdateNote: (noteId: string, updates: Partial<Note>) => Promise<void>;
   onDeleteNote: (noteId: string) => Promise<void>;
-  onEditNote: () => void;
 }
 
 export function NoteDetailModal({
   note,
   folders,
   open,
-  onOpenChange,
+  onClose,
   onUpdateNote,
   onDeleteNote,
-  onEditNote,
 }: NoteDetailModalProps) {
-  if (!note) return null;
-
+  const [showEditModal, setShowEditModal] = useState(false);
+  
   const folder = folders.find(f => f.id === note.folderId);
-
-  const handleImageSizeChange = async (imageId: string, width: number, height: number) => {
-    if (!note.embeddedImages) return;
-    
-    const updatedImages = note.embeddedImages.map(img => 
-      img.id === imageId ? { ...img, width, height } : img
-    );
-    
-    try {
-      await onUpdateNote(note.id, { embeddedImages: updatedImages });
-    } catch (error) {
-      console.error('Failed to update image size:', error);
-    }
-  };
 
   const toggleFavorite = async () => {
     try {
@@ -51,145 +51,176 @@ export function NoteDetailModal({
     }
   };
 
-  const getTypeIcon = () => {
-    switch (note.type) {
-      case 'text':
-        return <FileText className="h-4 w-4" />;
-      case 'image':
-        return <Image className="h-4 w-4" />;
-      case 'file':
-        return <File className="h-4 w-4" />;
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      try {
+        await onDeleteNote(note.id);
+        onClose();
+      } catch (error) {
+        console.error('Failed to delete note:', error);
+      }
     }
   };
 
   const renderContent = () => {
     if (note.type === 'image' && note.fileUrl) {
       return (
-        <div className="w-full max-w-2xl mx-auto">
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
           <img
             src={note.fileUrl}
-            alt={note.title}
-            className="w-full rounded-lg shadow-sm"
+            alt={note.fileName || 'Note image'}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '400px',
+              objectFit: 'contain',
+              borderRadius: 8
+            }}
           />
-        </div>
+          {note.fileName && (
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+              {note.fileName}
+            </Typography>
+          )}
+        </Box>
       );
     }
 
     if (note.type === 'file' && note.fileName) {
       return (
-        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-          <File className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium">{note.fileName}</p>
-            {note.fileSize && (
-              <p className="text-sm text-muted-foreground">{formatFileSize(note.fileSize)}</p>
-            )}
-            {note.fileMimeType && (
-              <p className="text-xs text-muted-foreground mt-1">{note.fileMimeType}</p>
-            )}
-          </div>
-        </div>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            p: 2,
+            bgcolor: 'grey.50',
+            borderRadius: 1,
+            mb: 2
+          }}
+        >
+          <Typography variant="body1" fontWeight="medium">
+            📎 {note.fileName}
+          </Typography>
+          {note.fileSize && (
+            <Typography variant="caption" color="text.secondary">
+              ({(note.fileSize / 1024).toFixed(1)} KB)
+            </Typography>
+          )}
+        </Box>
       );
     }
 
-    if (note.content) {
-      return (
-        <NoteContentRenderer
-          content={note.content}
-          embeddedImages={note.embeddedImages}
-          className="prose prose-sm max-w-none"
-          isEditable={true}
-          onImageSizeChange={handleImageSizeChange}
-        />
-      );
-    }
-
-    return null;
+    return (
+      <NoteContentRenderer
+        content={note.content}
+        embeddedImages={note.embeddedImages}
+        isEditable={false}
+      />
+    );
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="text-muted-foreground mt-1">
-                {getTypeIcon()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <DialogTitle className="text-left text-lg leading-tight">
-                  {note.title}
-                </DialogTitle>
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                  <span>Updated {formatDate(note.updatedAt)}</span>
-                  {folder && (
-                    <div className="flex items-center gap-1">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: folder.color }}
-                      />
-                      <span>{folder.name}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
+    <>
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="flex-start" justifyContent="space-between">
+            <Typography variant="h6" component="div" sx={{ flex: 1, pr: 2 }}>
+              {note.title}
+            </Typography>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <IconButton
+                size="small"
                 onClick={toggleFavorite}
+                color={note.isFavorite ? 'warning' : 'default'}
               >
-                {note.isFavorite ? (
-                  <Star className="h-4 w-4 text-accent" weight="fill" />
-                ) : (
-                  <Star className="h-4 w-4" />
-                )}
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onEditNote}
+                {note.isFavorite ? <StarIcon /> : <StarOutlineIcon />}
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => setShowEditModal(true)}
               >
-                <PencilSimple className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={async () => {
-                  if (confirm('Are you sure you want to delete this note?')) {
-                    try {
-                      await onDeleteNote(note.id);
-                      onOpenChange(false);
-                    } catch (error) {
-                      console.error('Failed to delete note:', error);
-                    }
-                  }
-                }}
+                <EditIcon />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={handleDelete}
+                color="error"
               >
-                <Trash className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </DialogHeader>
-        
-        <div className="space-y-4">
+                <DeleteIcon />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={onClose}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent>
           {renderContent()}
-          
-          {note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-4 border-t">
-              {note.tags.map((tag) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+
+          {note.content && note.type !== 'text' && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                {note.content}
+              </Typography>
+            </Box>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+
+          {/* Tags */}
+          {note.tags && note.tags.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Tags:
+              </Typography>
+              <Box display="flex" flexWrap="wrap" gap={0.5}>
+                {note.tags.map((tag) => (
+                  <Chip key={tag} label={tag} size="small" variant="outlined" />
+                ))}
+              </Box>
+            </Box>
+          )}
+
+          {/* Metadata */}
+          <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Created: {formatDate(note.createdAt)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Modified: {formatDate(note.updatedAt)}
+            </Typography>
+            {folder && (
+              <Box display="flex" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: folder.color
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {folder.name}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={onClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <EditNoteModal
+        note={note}
+        folders={folders}
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onUpdateNote={onUpdateNote}
+      />
+    </>
   );
 }

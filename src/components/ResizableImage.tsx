@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Box } from '@mui/material';
 import { EmbeddedImage } from '@/lib/types';
 
 interface ResizableImageProps {
@@ -28,7 +29,6 @@ export function ResizableImage({
   const [aspectRatio, setAspectRatio] = useState(1);
   
   const imageRef = useRef<HTMLImageElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Handle image load to get natural dimensions
   const handleImageLoad = useCallback(() => {
@@ -38,16 +38,17 @@ export function ResizableImage({
       setAspectRatio(naturalWidth / naturalHeight);
       
       // Set initial dimensions if not already set
-      if (!image.width && !image.height) {
-        const maxWidth = Math.min(naturalWidth, 600); // Default max width
-        const calculatedHeight = maxWidth / (naturalWidth / naturalHeight);
-        setDimensions({ width: maxWidth, height: calculatedHeight });
+      if (!dimensions.width && !dimensions.height) {
+        const maxWidth = 400;
+        const width = Math.min(naturalWidth, maxWidth);
+        const height = width / aspectRatio;
+        setDimensions({ width, height });
       }
     }
-  }, [image.width, image.height, aspectRatio]);
+  }, [dimensions.width, dimensions.height, aspectRatio]);
 
-  // Handle resize start
-  const handleResizeStart = useCallback((e: React.MouseEvent, handle: string) => {
+  // Mouse down handler for resize handles
+  const handleMouseDown = useCallback((e: React.MouseEvent, handle: string) => {
     if (!isEditable) return;
     
     e.preventDefault();
@@ -56,146 +57,164 @@ export function ResizableImage({
     setIsResizing(true);
     setResizeHandle(handle);
     setStartPosition({ x: e.clientX, y: e.clientY });
-    
-    const currentWidth = dimensions.width || imageRef.current?.offsetWidth || 0;
-    const currentHeight = dimensions.height || imageRef.current?.offsetHeight || 0;
-    setStartDimensions({ width: currentWidth, height: currentHeight });
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [isEditable, dimensions]);
+    setStartDimensions({
+      width: dimensions.width || naturalDimensions.width,
+      height: dimensions.height || naturalDimensions.height,
+    });
+  }, [isEditable, dimensions, naturalDimensions]);
 
-  // Handle mouse movement during resize
+  // Mouse move handler for resizing
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !resizeHandle) return;
-
+    
     const deltaX = e.clientX - startPosition.x;
     const deltaY = e.clientY - startPosition.y;
     
     let newWidth = startDimensions.width;
     let newHeight = startDimensions.height;
-
+    
     switch (resizeHandle) {
       case 'se': // Southeast corner
         newWidth = Math.max(50, startDimensions.width + deltaX);
-        newHeight = newWidth / aspectRatio;
+        newHeight = Math.max(50, startDimensions.height + deltaY);
+        // Maintain aspect ratio when dragging corner
+        if (e.shiftKey) {
+          newHeight = newWidth / aspectRatio;
+        }
         break;
-      case 'sw': // Southwest corner
-        newWidth = Math.max(50, startDimensions.width - deltaX);
-        newHeight = newWidth / aspectRatio;
-        break;
-      case 'ne': // Northeast corner
+      case 'e': // East side
         newWidth = Math.max(50, startDimensions.width + deltaX);
-        newHeight = newWidth / aspectRatio;
         break;
-      case 'nw': // Northwest corner
-        newWidth = Math.max(50, startDimensions.width - deltaX);
-        newHeight = newWidth / aspectRatio;
-        break;
-      case 'e': // East edge
-        newWidth = Math.max(50, startDimensions.width + deltaX);
-        newHeight = newWidth / aspectRatio;
-        break;
-      case 'w': // West edge
-        newWidth = Math.max(50, startDimensions.width - deltaX);
-        newHeight = newWidth / aspectRatio;
+      case 's': // South side
+        newHeight = Math.max(50, startDimensions.height + deltaY);
         break;
     }
-
+    
     // Constrain to reasonable bounds
-    newWidth = Math.min(Math.max(50, newWidth), naturalDimensions.width || 1000);
-    newHeight = newWidth / aspectRatio;
-
+    newWidth = Math.min(newWidth, 800);
+    newHeight = Math.min(newHeight, 600);
+    
     setDimensions({ width: newWidth, height: newHeight });
-  }, [isResizing, resizeHandle, startPosition, startDimensions, aspectRatio, naturalDimensions]);
+  }, [isResizing, resizeHandle, startPosition, startDimensions, aspectRatio]);
 
-  // Handle resize end
+  // Mouse up handler
   const handleMouseUp = useCallback(() => {
     if (isResizing && onSizeChange && dimensions.width && dimensions.height) {
       onSizeChange(image.id, dimensions.width, dimensions.height);
     }
-    
     setIsResizing(false);
     setResizeHandle(null);
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  }, [isResizing, onSizeChange, image.id, dimensions, handleMouseMove]);
+  }, [isResizing, onSizeChange, dimensions, image.id]);
 
-  // Cleanup event listeners on unmount
+  // Add event listeners
   useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [handleMouseMove, handleMouseUp]);
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const imageStyle = {
     width: dimensions.width ? `${dimensions.width}px` : 'auto',
     height: dimensions.height ? `${dimensions.height}px` : 'auto',
     maxWidth: '100%',
+    display: 'block',
+    borderRadius: 4,
   };
 
   return (
-    <div className={`relative inline-block group ${className}`} ref={containerRef}>
+    <Box
+      sx={{
+        position: 'relative',
+        display: 'inline-block',
+        maxWidth: '100%',
+        ...(isEditable && {
+          '&:hover .resize-handle': {
+            opacity: 1,
+          },
+        }),
+      }}
+      className={className}
+    >
       <img
         ref={imageRef}
-        src={image.url}
-        alt={altText || image.alt}
+        src={image.data}
+        alt={altText || 'Embedded image'}
         style={imageStyle}
         onLoad={handleImageLoad}
-        className="rounded-lg shadow-sm select-none"
-        loading="lazy"
         draggable={false}
       />
       
       {isEditable && (
         <>
-          {/* Resize handles */}
-          <div 
-            className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-primary-foreground rounded-full cursor-nw-resize opacity-0 group-hover:opacity-100 transition-opacity"
-            onMouseDown={(e) => handleResizeStart(e, 'ne')}
-          />
-          <div 
-            className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-primary-foreground rounded-full cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
-            onMouseDown={(e) => handleResizeStart(e, 'se')}
-          />
-          <div 
-            className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-primary-foreground rounded-full cursor-sw-resize opacity-0 group-hover:opacity-100 transition-opacity"
-            onMouseDown={(e) => handleResizeStart(e, 'sw')}
-          />
-          <div 
-            className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-primary-foreground rounded-full cursor-nw-resize opacity-0 group-hover:opacity-100 transition-opacity"
-            onMouseDown={(e) => handleResizeStart(e, 'nw')}
+          {/* Southeast corner handle */}
+          <Box
+            className="resize-handle"
+            sx={{
+              position: 'absolute',
+              bottom: -4,
+              right: -4,
+              width: 12,
+              height: 12,
+              bgcolor: 'primary.main',
+              border: '2px solid white',
+              borderRadius: '50%',
+              cursor: 'se-resize',
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+              zIndex: 10,
+            }}
+            onMouseDown={(e) => handleMouseDown(e, 'se')}
           />
           
-          {/* Edge handles */}
-          <div 
-            className="absolute top-0 -right-1 w-3 h-full cursor-e-resize opacity-0 group-hover:opacity-100 transition-opacity"
-            onMouseDown={(e) => handleResizeStart(e, 'e')}
-          >
-            <div className="w-1 h-full bg-primary/50 mx-auto" />
-          </div>
-          <div 
-            className="absolute top-0 -left-1 w-3 h-full cursor-w-resize opacity-0 group-hover:opacity-100 transition-opacity"
-            onMouseDown={(e) => handleResizeStart(e, 'w')}
-          >
-            <div className="w-1 h-full bg-primary/50 mx-auto" />
-          </div>
+          {/* East side handle */}
+          <Box
+            className="resize-handle"
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              right: -4,
+              width: 8,
+              height: 20,
+              bgcolor: 'primary.main',
+              border: '1px solid white',
+              borderRadius: 1,
+              cursor: 'e-resize',
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+            }}
+            onMouseDown={(e) => handleMouseDown(e, 'e')}
+          />
           
-          {/* Size indicator */}
-          {isResizing && (
-            <div className="absolute -top-8 left-0 bg-primary text-primary-foreground text-xs px-2 py-1 rounded shadow-lg">
-              {Math.round(dimensions.width || 0)} × {Math.round(dimensions.height || 0)}
-            </div>
-          )}
+          {/* South side handle */}
+          <Box
+            className="resize-handle"
+            sx={{
+              position: 'absolute',
+              bottom: -4,
+              left: '50%',
+              width: 20,
+              height: 8,
+              bgcolor: 'primary.main',
+              border: '1px solid white',
+              borderRadius: 1,
+              cursor: 's-resize',
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+              transform: 'translateX(-50%)',
+              zIndex: 10,
+            }}
+            onMouseDown={(e) => handleMouseDown(e, 's')}
+          />
         </>
       )}
-      
-      {(altText || image.alt) && (
-        <p className="text-sm text-muted-foreground mt-2 italic">
-          {altText || image.alt}
-        </p>
-      )}
-    </div>
+    </Box>
   );
 }

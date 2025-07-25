@@ -1,14 +1,26 @@
 import { useState } from 'react';
-import { Download, FileText, Table, Upload } from '@phosphor-icons/react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Menu,
+  MenuItem,
+  Box,
+  Typography,
+  TextField,
+  Paper,
+  Divider
+} from '@mui/material';
+import {
+  Download as DownloadIcon,
+  Description as FileTextIcon,
+  TableChart as TableIcon,
+  Upload as UploadIcon
+} from '@mui/icons-material';
 import { Note, Folder } from '@/lib/types';
 import { exportAsJSON, exportAsCSV, parseImportData, ExportData } from '@/lib/export';
-import { toast } from 'sonner';
 
 interface ExportDialogProps {
   notes: Note[];
@@ -18,47 +30,37 @@ interface ExportDialogProps {
 
 export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   const handleExportJSON = () => {
     try {
       if (notes.length === 0) {
-        toast.error('No notes to export');
+        alert('No notes to export');
         return;
       }
       exportAsJSON(notes, folders);
-      toast.success(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
+      alert(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
       setIsOpen(false);
     } catch (error) {
       console.error('JSON export failed:', error);
-      toast.error('Failed to export notes as JSON: ' + (error as Error).message);
+      alert('Failed to export notes as JSON: ' + (error as Error).message);
     }
   };
-
-
 
   const handleExportCSV = () => {
     try {
       if (notes.length === 0) {
-        toast.error('No notes to export');
+        alert('No notes to export');
         return;
       }
       exportAsCSV(notes, folders);
-      toast.success(`Exported ${notes.length} notes as CSV`);
+      alert(`Exported ${notes.length} notes as CSV`);
       setIsOpen(false);
     } catch (error) {
       console.error('CSV export failed:', error);
-      toast.error('Failed to export notes as CSV: ' + (error as Error).message);
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === 'application/json') {
-      setImportFile(file);
-    } else {
-      toast.error('Please select a valid JSON backup file');
+      alert('Failed to export notes as CSV: ' + (error as Error).message);
     }
   };
 
@@ -67,185 +69,186 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
 
     setIsImporting(true);
     try {
-      const importData = await parseImportData(importFile);
-      await onImport(importData);
-      toast.success(`Imported ${importData.notes.length} notes and ${importData.folders.length} folders`);
+      const fileContent = await importFile.text();
+      const data = parseImportData(fileContent);
+      await onImport(data);
+      alert(`Successfully imported ${data.notes.length} notes and ${data.folders.length} folders`);
       setIsOpen(false);
       setImportFile(null);
     } catch (error) {
       console.error('Import failed:', error);
-      toast.error('Failed to import backup file: ' + (error as Error).message);
+      alert('Failed to import data: ' + (error as Error).message);
     } finally {
       setIsImporting(false);
     }
   };
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Backup & Restore</DialogTitle>
-          <DialogDescription>
-            Export your notes or import from a backup file
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<DownloadIcon />}
+        onClick={handleMenuOpen}
+      >
+        Export
+      </Button>
+      
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <MenuItem onClick={handleExportJSON}>
+          <FileTextIcon fontSize="small" sx={{ mr: 1 }} />
+          Export as JSON
+        </MenuItem>
+        <MenuItem onClick={handleExportCSV}>
+          <TableIcon fontSize="small" sx={{ mr: 1 }} />
+          Export as CSV
+        </MenuItem>
+        <MenuItem onClick={() => { handleMenuClose(); setIsOpen(true); }}>
+          <UploadIcon fontSize="small" sx={{ mr: 1 }} />
+          Import Data
+        </MenuItem>
+      </Menu>
 
-        <div className="space-y-6">
-          {/* Export Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Export Notes</h3>
-            <div className="space-y-2">
+      <Dialog open={isOpen} onClose={() => setIsOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Import Notes</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Import notes and folders from a previously exported JSON file.
+          </Typography>
+          
+          <Divider sx={{ my: 2 }} />
+          
+          <Box sx={{ mb: 2 }}>
+            <input
+              type="file"
+              accept=".json"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              style={{ display: 'none' }}
+              id="import-file-input"
+            />
+            <label htmlFor="import-file-input">
               <Button
-                onClick={handleExportJSON}
-                variant="outline"
-                className="w-full justify-start"
+                component="span"
+                variant="outlined"
+                startIcon={<UploadIcon />}
+                fullWidth
               >
-                <FileText className="h-4 w-4 mr-3" />
-                <div className="text-left">
-                  <div className="font-medium">Export as JSON</div>
-                  <div className="text-xs text-muted-foreground">
-                    Complete backup with all data
-                  </div>
-                </div>
+                Select JSON File
               </Button>
-              
-              <Button
-                onClick={handleExportCSV}
-                variant="outline"
-                className="w-full justify-start"
-              >
-                <Table className="h-4 w-4 mr-3" />
-                <div className="text-left">
-                  <div className="font-medium">Export as CSV</div>
-                  <div className="text-xs text-muted-foreground">
-                    Spreadsheet compatible format
-                  </div>
-                </div>
-              </Button>
-            </div>
-          </div>
+            </label>
+          </Box>
 
-          {onImport && (
-            <>
-              <Separator />
-              
-              {/* Import Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Import Backup</h3>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="backup-file" className="text-sm">
-                      Select JSON backup file
-                    </Label>
-                    <Input
-                      id="backup-file"
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileSelect}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  {importFile && (
-                    <div className="p-3 bg-muted rounded-md">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {importFile.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {(importFile.size / 1024).toFixed(1)} KB
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <Button
-                    onClick={handleImport}
-                    disabled={!importFile || isImporting}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    {isImporting ? 'Importing...' : 'Import Backup'}
-                  </Button>
-                  
-                  {onImport && (
-                    <p className="text-xs text-muted-foreground">
-                      ⚠️ Importing will add to your existing notes. Duplicates may be created.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </>
+          {importFile && (
+            <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+              <Typography variant="body2" fontWeight="medium">
+                Selected file: {importFile.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Size: {(importFile.size / 1024).toFixed(1)} KB
+              </Typography>
+            </Paper>
           )}
-        </div>
-
-        <div className="text-xs text-muted-foreground pt-4 border-t">
-          💡 JSON exports can be re-imported. CSV exports are for viewing and external use only.
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsOpen(false)} disabled={isImporting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleImport}
+            variant="contained"
+            disabled={!importFile || isImporting}
+          >
+            {isImporting ? 'Importing...' : 'Import'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 
-// Simplified export dropdown for the header
+// For backward compatibility with components that use the old export dropdown
 export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Folder[] }) {
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
+
   const handleExportJSON = () => {
     try {
       if (notes.length === 0) {
-        toast.error('No notes to export');
+        alert('No notes to export');
         return;
       }
       exportAsJSON(notes, folders);
-      toast.success(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
+      alert(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
     } catch (error) {
       console.error('JSON export failed:', error);
-      toast.error('Failed to export notes as JSON: ' + (error as Error).message);
+      alert('Failed to export notes as JSON: ' + (error as Error).message);
     }
+    handleMenuClose();
   };
-
-
 
   const handleExportCSV = () => {
     try {
       if (notes.length === 0) {
-        toast.error('No notes to export');
+        alert('No notes to export');
         return;
       }
       exportAsCSV(notes, folders);
-      toast.success(`Exported ${notes.length} notes as CSV`);
+      alert(`Exported ${notes.length} notes as CSV`);
     } catch (error) {
       console.error('CSV export failed:', error);
-      toast.error('Failed to export notes as CSV: ' + (error as Error).message);
+      alert('Failed to export notes as CSV: ' + (error as Error).message);
     }
+    handleMenuClose();
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleExportJSON}>
-          <FileText className="h-4 w-4 mr-2" />
+    <>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<DownloadIcon />}
+        onClick={handleMenuOpen}
+      >
+        Export
+      </Button>
+      
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <MenuItem onClick={handleExportJSON}>
+          <FileTextIcon fontSize="small" sx={{ mr: 1 }} />
           Export as JSON
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportCSV}>
-          <Table className="h-4 w-4 mr-2" />
+        </MenuItem>
+        <MenuItem onClick={handleExportCSV}>
+          <TableIcon fontSize="small" sx={{ mr: 1 }} />
           Export as CSV
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </MenuItem>
+      </Menu>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Note, Folder } from '../lib/types';
 import { db } from '../lib/database';
-import { toast } from 'sonner';
 
 /**
  * React hook for database operations

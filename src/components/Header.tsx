@@ -1,7 +1,24 @@
-import { Plus, MagnifyingGlass, SquaresFour, List, SortAscending } from '@phosphor-icons/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  AppBar, 
+  Toolbar, 
+  Box, 
+  TextField, 
+  IconButton, 
+  Button, 
+  Menu, 
+  MenuItem,
+  ToggleButton,
+  ToggleButtonGroup,
+  InputAdornment
+} from '@mui/material';
+import { 
+  Add as AddIcon,
+  Search as SearchIcon,
+  GridView as GridViewIcon,
+  List as ListIcon,
+  Sort as SortIcon
+} from '@mui/icons-material';
+import { useState } from 'react';
 import { ViewMode, SortOption, Note, Folder } from '@/lib/types';
 import { ExportDropdown } from './ExportDialog';
 
@@ -28,78 +45,119 @@ export function Header({
   notes,
   folders,
 }: HeaderProps) {
+  const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const handleSortMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setSortMenuAnchor(event.currentTarget);
+  };
+
+  const handleSortMenuClose = () => {
+    setSortMenuAnchor(null);
+  };
+
+  const handleSortChange = (sort: SortOption) => {
+    onSortChange(sort);
+    handleSortMenuClose();
+  };
+
   return (
-    <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-between p-4 lg:p-6 gap-4">
+    <AppBar position="static" elevation={1} color="inherit">
+      <Toolbar sx={{ gap: 2, py: 1 }}>
         {/* Search */}
-        <div className="flex items-center flex-1 max-w-md">
-          <div className="relative w-full">
-            <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+        <Box sx={{ flex: 1, maxWidth: 400 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'background.paper',
+              },
+            }}
+          />
+        </Box>
 
         {/* Controls */}
-        <div className="flex items-center gap-2">
-          {/* Export */}
-          <ExportDropdown notes={notes} folders={folders} />
+        <Box display="flex" alignItems="center" gap={1}>
+          {/* Export - Hidden on mobile */}
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <ExportDropdown notes={notes} folders={folders} />
+          </Box>
 
           {/* Sort - Hidden on mobile */}
-          <div className="hidden md:block">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <SortAscending className="h-4 w-4 mr-2" />
-                  <span className="hidden lg:inline">Sort by {sortBy}</span>
-                  <span className="lg:hidden">Sort</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onSortChange('date')}>
-                  Date modified
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSortChange('title')}>
-                  Title
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSortChange('type')}>
-                  Type
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<SortIcon />}
+              onClick={handleSortMenuOpen}
+            >
+              <Box sx={{ display: { xs: 'none', lg: 'inline' } }}>
+                Sort by {sortBy}
+              </Box>
+              <Box sx={{ display: { xs: 'inline', lg: 'none' } }}>
+                Sort
+              </Box>
+            </Button>
+            <Menu
+              anchorEl={sortMenuAnchor}
+              open={Boolean(sortMenuAnchor)}
+              onClose={handleSortMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem onClick={() => handleSortChange('date')}>
+                Date modified
+              </MenuItem>
+              <MenuItem onClick={() => handleSortChange('title')}>
+                Title
+              </MenuItem>
+              <MenuItem onClick={() => handleSortChange('type')}>
+                Type
+              </MenuItem>
+            </Menu>
+          </Box>
 
           {/* View Mode - Hidden on mobile */}
-          <div className="hidden md:flex rounded-md border border-border">
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="rounded-r-none border-0"
-              onClick={() => onViewModeChange('grid')}
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(_, newMode) => newMode && onViewModeChange(newMode)}
+              size="small"
             >
-              <SquaresFour className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="rounded-l-none border-0"
-              onClick={() => onViewModeChange('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
+              <ToggleButton value="grid" aria-label="grid view">
+                <GridViewIcon fontSize="small" />
+              </ToggleButton>
+              <ToggleButton value="list" aria-label="list view">
+                <ListIcon fontSize="small" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
 
           {/* Create Note */}
-          <Button onClick={onCreateNote} size="sm" className="md:ml-2">
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">New Note</span>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={onCreateNote}
+            sx={{ ml: { md: 1 } }}
+          >
+            <Box sx={{ display: { xs: 'none', md: 'inline' } }}>
+              New Note
+            </Box>
           </Button>
-        </div>
-      </div>
-    </header>
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 }

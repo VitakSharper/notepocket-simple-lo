@@ -1,13 +1,31 @@
 import { useState } from 'react';
-import { Star, DotsThree, FileText, Image, File, Trash, PencilSimple } from '@phosphor-icons/react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  Typography,
+  Chip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Box
+} from '@mui/material';
+import {
+  Description as FileTextIcon,
+  Image as ImageIcon,
+  AttachFile as FileIcon,
+  Star as StarIcon,
+  StarOutline as StarOutlineIcon,
+  MoreVert as MoreVertIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
 import { Note, Folder } from '@/lib/types';
-import { formatDate, formatFileSize } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { EditNoteModal } from './EditNoteModal';
 import { NoteDetailModal } from './NoteDetailModal';
-import { cn } from '@/lib/utils';
 
 interface NoteListItemProps {
   note: Note;
@@ -19,6 +37,7 @@ interface NoteListItemProps {
 export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: NoteListItemProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   const folder = folders.find(f => f.id === note.folderId);
 
@@ -33,148 +52,172 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
   const getTypeIcon = () => {
     switch (note.type) {
       case 'text':
-        return <FileText className="h-4 w-4 text-muted-foreground" />;
+        return <FileTextIcon />;
       case 'image':
-        return <Image className="h-4 w-4 text-muted-foreground" />;
+        return <ImageIcon />;
       case 'file':
-        return <File className="h-4 w-4 text-muted-foreground" />;
+        return <FileIcon />;
     }
   };
 
-  const getPreview = () => {
-    if (note.type === 'file' && note.fileName) {
-      return `📎 ${note.fileName}${note.fileSize ? ` (${formatFileSize(note.fileSize)})` : ''}`;
-    }
-    return note.content?.substring(0, 100) + (note.content && note.content.length > 100 ? '...' : '') || '';
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
+
+  const handleEdit = () => {
+    setShowEditModal(true);
+    handleMenuClose();
+  };
+
+  const handleDelete = () => {
+    onDeleteNote(note.id);
+    handleMenuClose();
   };
 
   return (
     <>
-      <div 
-        className="group flex items-center gap-4 p-4 border border-border rounded-lg hover:shadow-sm transition-shadow bg-card cursor-pointer"
-        onClick={() => setShowDetailModal(true)}
-      >
-        {/* Type Icon */}
-        <div className="flex-shrink-0">
-          {getTypeIcon()}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-1">
-            <h3 className="font-medium text-sm truncate pr-2">
-              {note.title}
-            </h3>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
+      <ListItem disablePadding sx={{ mb: 1 }}>
+        <ListItemButton
+          onClick={() => setShowDetailModal(true)}
+          sx={{ 
+            borderRadius: 1,
+            border: 1,
+            borderColor: 'divider',
+            '&:hover': { borderColor: 'primary.main' }
+          }}
+        >
+          <ListItemIcon>
+            {getTypeIcon()}
+          </ListItemIcon>
+          
+          <ListItemText
+            primary={
+              <Typography variant="subtitle2" fontWeight="medium">
+                {note.title}
+              </Typography>
+            }
+            secondary={
+              <Box>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ 
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    mb: 0.5
+                  }}
+                >
+                  {note.content || 'No content'}
+                </Typography>
+                
+                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(note.updatedAt)}
+                  </Typography>
+                  
+                  {folder && (
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          bgcolor: folder.color
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {folder.name}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {note.tags && note.tags.length > 0 && (
+                    <Box display="flex" gap={0.5}>
+                      {note.tags.slice(0, 2).map((tag) => (
+                        <Chip
+                          key={tag}
+                          label={tag}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: '0.6875rem', height: 16 }}
+                        />
+                      ))}
+                      {note.tags.length > 2 && (
+                        <Typography variant="caption" color="text.secondary">
+                          +{note.tags.length - 2}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            }
+          />
+          
+          <ListItemSecondaryAction>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <IconButton
+                size="small"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleFavorite();
                 }}
+                color={note.isFavorite ? 'warning' : 'default'}
               >
-                {note.isFavorite ? (
-                  <Star className="h-3 w-3 text-accent" weight="fill" />
-                ) : (
-                  <Star className="h-3 w-3" />
-                )}
-              </Button>
+                {note.isFavorite ? <StarIcon fontSize="small" /> : <StarOutlineIcon fontSize="small" />}
+              </IconButton>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <DotsThree className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                    <PencilSimple className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-destructive"
-                    onClick={async () => {
-                      try {
-                        await onDeleteNote(note.id);
-                      } catch (error) {
-                        console.error('Failed to delete note:', error);
-                      }
-                    }}
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          
-          {getPreview() && (
-            <p className="text-sm text-muted-foreground truncate mb-2">
-              {getPreview()}
-            </p>
-          )}
-          
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>{formatDate(note.updatedAt)}</span>
-            
-            {folder && (
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: folder.color }}
-                />
-                <span>{folder.name}</span>
-              </div>
-            )}
-            
-            {note.tags.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span>Tags:</span>
-                <div className="flex gap-1">
-                  {note.tags.slice(0, 2).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {note.tags.length > 2 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{note.tags.length - 2}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              <IconButton
+                size="small"
+                onClick={handleMenuOpen}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </ListItemSecondaryAction>
+        </ListItemButton>
+      </ListItem>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Edit
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Modals */}
+      <EditNoteModal
+        note={note}
+        folders={folders}
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onUpdateNote={onUpdateNote}
+      />
 
       <NoteDetailModal
         note={note}
         folders={folders}
         open={showDetailModal}
-        onOpenChange={setShowDetailModal}
+        onClose={() => setShowDetailModal(false)}
         onUpdateNote={onUpdateNote}
         onDeleteNote={onDeleteNote}
-        onEditNote={() => {
-          setShowDetailModal(false);
-          setShowEditModal(true);
-        }}
-      />
-
-      <EditNoteModal
-        note={note}
-        folders={folders}
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-        onUpdateNote={onUpdateNote}
       />
     </>
   );

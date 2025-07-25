@@ -1,13 +1,32 @@
 import { useState } from 'react';
-import { Plus, FolderSimple, Star, Trash, DotsThree } from '@phosphor-icons/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
+import { 
+  Box, 
+  Typography, 
+  List, 
+  ListItem, 
+  ListItemButton, 
+  ListItemIcon, 
+  ListItemText,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  Button,
+  Divider,
+  Menu,
+  MenuItem,
+  Paper
+} from '@mui/material';
+import { 
+  Add as AddIcon,
+  Folder as FolderIcon,
+  Star as StarIcon,
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon
+} from '@mui/icons-material';
 import { Folder, Note } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { ExportDialog } from './ExportDialog';
 import { ExportData } from '@/lib/export';
 
@@ -46,6 +65,8 @@ export function Sidebar({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedColor, setSelectedColor] = useState(FOLDER_COLORS[0]);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   const handleCreateFolder = () => {
     if (newFolderName.trim()) {
@@ -56,148 +77,247 @@ export function Sidebar({
     }
   };
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, folderId: string) => {
+    event.stopPropagation();
+    setMenuAnchor(event.currentTarget);
+    setSelectedFolderId(folderId);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+    setSelectedFolderId(null);
+  };
+
+  const handleDeleteFolder = () => {
+    if (selectedFolderId) {
+      onDeleteFolder(selectedFolderId);
+      handleMenuClose();
+    }
+  };
+
   return (
-    <div className="w-64 bg-muted/30 border-r border-border flex flex-col">
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        width: 280, 
+        bgcolor: 'background.paper', 
+        borderRight: 1, 
+        borderColor: 'divider',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%'
+      }}
+    >
       {/* Header */}
-      <div className="p-6 border-b border-border">
-        <h1 className="text-2xl font-bold text-foreground">NotePocket</h1>
-        <p className="text-sm text-muted-foreground mt-1">{noteCount} notes total</p>
-      </div>
+      <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h4" fontWeight="bold" color="primary">
+          NotePocket
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {noteCount} notes total
+        </Typography>
+      </Box>
 
       {/* Navigation */}
-      <div className="flex-1 p-4 space-y-2">
-        {/* All Notes */}
-        <Button
-          variant={!selectedFolder && !showFavoritesOnly ? "secondary" : "ghost"}
-          className="w-full justify-start h-10"
-          onClick={() => {
-            onSelectFolder(null);
-            onToggleFavorites(false);
-          }}
-        >
-          <FolderSimple className="mr-2 h-4 w-4" />
-          All Notes
-          <Badge variant="outline" className="ml-auto">
-            {noteCount}
-          </Badge>
-        </Button>
+      <Box sx={{ flex: 1, p: 2 }}>
+        <List sx={{ p: 0 }}>
+          {/* All Notes */}
+          <ListItem disablePadding sx={{ mb: 0.5 }}>
+            <ListItemButton
+              selected={!selectedFolder && !showFavoritesOnly}
+              onClick={() => {
+                onSelectFolder(null);
+                onToggleFavorites(false);
+              }}
+              sx={{ borderRadius: 1 }}
+            >
+              <ListItemIcon>
+                <FolderIcon />
+              </ListItemIcon>
+              <ListItemText primary="All Notes" />
+              <Chip 
+                label={noteCount} 
+                size="small" 
+                variant="outlined"
+                sx={{ minWidth: 'auto' }}
+              />
+            </ListItemButton>
+          </ListItem>
 
-        {/* Favorites */}
-        <Button
-          variant={showFavoritesOnly ? "secondary" : "ghost"}
-          className="w-full justify-start h-10"
-          onClick={() => {
-            onSelectFolder(null);
-            onToggleFavorites(true);
-          }}
-        >
-          <Star className="mr-2 h-4 w-4" />
-          Favorites
-          <Badge variant="outline" className="ml-auto">
-            {favoriteCount}
-          </Badge>
-        </Button>
+          {/* Favorites */}
+          <ListItem disablePadding sx={{ mb: 0.5 }}>
+            <ListItemButton
+              selected={showFavoritesOnly}
+              onClick={() => {
+                onSelectFolder(null);
+                onToggleFavorites(true);
+              }}
+              sx={{ borderRadius: 1 }}
+            >
+              <ListItemIcon>
+                <StarIcon />
+              </ListItemIcon>
+              <ListItemText primary="Favorites" />
+              <Chip 
+                label={favoriteCount} 
+                size="small" 
+                variant="outlined"
+                sx={{ minWidth: 'auto' }}
+              />
+            </ListItemButton>
+          </ListItem>
 
-        {/* Export & Import */}
-        <div className="pt-4">
-          <Separator className="mb-4" />
-          <ExportDialog 
-            notes={notes} 
-            folders={folders} 
-            onImport={onImport}
-          />
-        </div>
+          {/* Export & Import */}
+          <ListItem sx={{ py: 2 }}>
+            <Divider sx={{ width: '100%' }} />
+          </ListItem>
+          
+          <ListItem disablePadding>
+            <ExportDialog 
+              notes={notes} 
+              folders={folders} 
+              onImport={onImport}
+            />
+          </ListItem>
 
-        {/* Folders Section */}
-        <div className="pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Folders</h3>
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create New Folder</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Folder name"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-                  />
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Choose a color:</p>
-                    <div className="flex gap-2">
-                      {FOLDER_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          className={cn(
-                            "w-6 h-6 rounded-full border-2",
-                            selectedColor === color ? "border-foreground" : "border-transparent"
-                          )}
-                          style={{ backgroundColor: color }}
-                          onClick={() => setSelectedColor(color)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
-                      Create
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+          {/* Folders Section */}
+          <ListItem sx={{ py: 2 }}>
+            <Divider sx={{ width: '100%' }} />
+          </ListItem>
+          
+          <ListItem sx={{ px: 0, pb: 1 }}>
+            <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+              <Typography variant="subtitle2" color="text.secondary" fontWeight="medium">
+                Folders
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => setShowCreateDialog(true)}
+                sx={{ p: 0.5 }}
+              >
+                <AddIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </ListItem>
 
           {/* Folder List */}
-          <div className="space-y-1">
-            {folders.map((folder) => (
-              <div key={folder.id} className="flex items-center">
-                <Button
-                  variant={selectedFolder === folder.id ? "secondary" : "ghost"}
-                  className="flex-1 justify-start h-10 mr-1"
-                  onClick={() => {
-                    onSelectFolder(folder.id);
-                    onToggleFavorites(false);
-                  }}
-                >
-                  <div
-                    className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: folder.color }}
+          {folders.map((folder) => (
+            <ListItem key={folder.id} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                selected={selectedFolder === folder.id}
+                onClick={() => {
+                  onSelectFolder(folder.id);
+                  onToggleFavorites(false);
+                }}
+                sx={{ borderRadius: 1, pr: 1 }}
+              >
+                <ListItemIcon>
+                  <Box
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      bgcolor: folder.color,
+                      mr: 1
+                    }}
                   />
-                  {folder.name}
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <DotsThree className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => onDeleteFolder(folder.id)}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+                </ListItemIcon>
+                <ListItemText 
+                  primary={folder.name}
+                  primaryTypographyProps={{ 
+                    variant: 'body2',
+                    sx: { flex: 1, minWidth: 0 }
+                  }}
+                />
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleMenuOpen(e, folder.id)}
+                  sx={{ p: 0.5 }}
+                >
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+
+      {/* Create Folder Dialog */}
+      <Dialog 
+        open={showCreateDialog} 
+        onClose={() => setShowCreateDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create New Folder</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, pb: 2 }}>
+            <TextField
+              fullWidth
+              label="Folder name"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+              sx={{ mb: 3 }}
+            />
+            
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Choose a color:
+            </Typography>
+            <Box display="flex" gap={1} sx={{ mb: 3 }}>
+              {FOLDER_COLORS.map((color) => (
+                <Box
+                  key={color}
+                  onClick={() => setSelectedColor(color)}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    bgcolor: color,
+                    border: selectedColor === color ? 2 : 1,
+                    borderColor: selectedColor === color ? 'primary.main' : 'transparent',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              ))}
+            </Box>
+            
+            <Box display="flex" justifyContent="flex-end" gap={1}>
+              <Button 
+                variant="outlined" 
+                onClick={() => setShowCreateDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleCreateFolder} 
+                disabled={!newFolderName.trim()}
+              >
+                Create
+              </Button>
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Folder Actions Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={handleDeleteFolder} sx={{ color: 'error.main' }}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+    </Paper>
   );
 }

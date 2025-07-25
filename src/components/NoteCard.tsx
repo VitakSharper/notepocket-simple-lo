@@ -1,9 +1,25 @@
 import { useState } from 'react';
-import { Star, DotsThree, FileText, Image, File, Trash, PencilSimple } from '@phosphor-icons/react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  Card, 
+  CardContent, 
+  CardActions,
+  Typography, 
+  IconButton, 
+  Chip, 
+  Menu, 
+  MenuItem,
+  Box
+} from '@mui/material';
+import { 
+  Star as StarIcon,
+  StarOutline as StarOutlineIcon,
+  MoreVert as MoreVertIcon,
+  Description as FileTextIcon,
+  Image as ImageIcon,
+  AttachFile as FileIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon
+} from '@mui/icons-material';
 import { Note, Folder } from '@/lib/types';
 import { formatDate, formatFileSize, isImageFile } from '@/lib/utils';
 import { EditNoteModal } from './EditNoteModal';
@@ -20,6 +36,7 @@ interface NoteCardProps {
 export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCardProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   const folder = folders.find(f => f.id === note.folderId);
 
@@ -34,188 +51,242 @@ export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCard
   const getTypeIcon = () => {
     switch (note.type) {
       case 'text':
-        return <FileText className="h-4 w-4" />;
+        return <FileTextIcon fontSize="small" />;
       case 'image':
-        return <Image className="h-4 w-4" />;
+        return <ImageIcon fontSize="small" />;
       case 'file':
-        return <File className="h-4 w-4" />;
+        return <FileIcon fontSize="small" />;
     }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
+
+  const handleEdit = () => {
+    setShowEditModal(true);
+    handleMenuClose();
+  };
+
+  const handleDelete = () => {
+    onDeleteNote(note.id);
+    handleMenuClose();
   };
 
   const renderContent = () => {
     if (note.type === 'image' && note.fileUrl) {
       return (
-        <div className="aspect-video bg-muted rounded-md overflow-hidden mb-3">
+        <Box
+          sx={{
+            aspectRatio: '16/9',
+            bgcolor: 'grey.100',
+            borderRadius: 1,
+            overflow: 'hidden',
+            mb: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
           <img
             src={note.fileUrl}
-            alt={note.title}
-            className="w-full h-full object-cover"
+            alt={note.fileName || 'Note image'}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
           />
-        </div>
+        </Box>
       );
     }
 
     if (note.type === 'file' && note.fileName) {
       return (
-        <div className="flex items-center gap-3 p-3 bg-muted rounded-md mb-3">
-          <File className="h-6 w-6 text-muted-foreground flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{note.fileName}</p>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            p: 2,
+            bgcolor: 'grey.50',
+            borderRadius: 1,
+            mb: 2
+          }}
+        >
+          {isImageFile(note.fileName) ? <ImageIcon /> : <FileIcon />}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" noWrap>
+              {note.fileName}
+            </Typography>
             {note.fileSize && (
-              <p className="text-xs text-muted-foreground">{formatFileSize(note.fileSize)}</p>
+              <Typography variant="caption" color="text.secondary">
+                {formatFileSize(note.fileSize)}
+              </Typography>
             )}
-          </div>
-        </div>
+          </Box>
+        </Box>
       );
     }
 
-    if (note.type === 'text' && note.content) {
-      // For text notes, use the content renderer to handle embedded images
-      return (
-        <div className="mb-3">
-          <NoteContentRenderer
-            content={note.content}
-            embeddedImages={note.embeddedImages}
-            className="text-sm text-muted-foreground line-clamp-3"
-          />
-        </div>
-      );
-    }
-
-    if (note.content) {
-      return (
-        <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-          {note.content}
-        </p>
-      );
-    }
-
-    return null;
+    return (
+      <NoteContentRenderer
+        content={note.content}
+        embeddedImages={note.embeddedImages}
+        maxLines={3}
+      />
+    );
   };
 
   return (
     <>
       <Card 
-        className="group hover:shadow-md transition-shadow cursor-pointer"
+        sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: 3
+          }
+        }}
         onClick={() => setShowDetailModal(true)}
       >
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-2 flex-1 min-w-0">
-              <div className="text-muted-foreground mt-0.5">
-                {getTypeIcon()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm line-clamp-2 leading-5">
-                  {note.title}
-                </h3>
-              </div>
-            </div>
+        <CardContent sx={{ flex: 1, pb: 1 }}>
+          {/* Header */}
+          <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1}>
+            <Box display="flex" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
+              {getTypeIcon()}
+              <Typography 
+                variant="h6" 
+                component="h3" 
+                sx={{ 
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}
+              >
+                {note.title}
+              </Typography>
+            </Box>
             
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <IconButton
+                size="small"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleFavorite();
                 }}
+                color={note.isFavorite ? 'warning' : 'default'}
               >
-                {note.isFavorite ? (
-                  <Star className="h-3 w-3 text-accent" weight="fill" />
-                ) : (
-                  <Star className="h-3 w-3" />
-                )}
-              </Button>
+                {note.isFavorite ? <StarIcon fontSize="small" /> : <StarOutlineIcon fontSize="small" />}
+              </IconButton>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <DotsThree className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                    <PencilSimple className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-destructive"
-                    onClick={async () => {
-                      try {
-                        await onDeleteNote(note.id);
-                      } catch (error) {
-                        console.error('Failed to delete note:', error);
-                      }
-                    }}
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="pt-0">
+              <IconButton
+                size="small"
+                onClick={handleMenuOpen}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+
+          {/* Content */}
           {renderContent()}
-          
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{formatDate(note.updatedAt)}</span>
-            {folder && (
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: folder.color }}
-                />
-                <span>{folder.name}</span>
-              </div>
-            )}
-          </div>
-          
-          {note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+
+          {/* Tags */}
+          {note.tags && note.tags.length > 0 && (
+            <Box display="flex" flexWrap="wrap" gap={0.5} mb={1}>
               {note.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
+                <Chip
+                  key={tag}
+                  label={tag}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.75rem', height: 20 }}
+                />
               ))}
               {note.tags.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{note.tags.length - 3}
-                </Badge>
+                <Chip
+                  label={`+${note.tags.length - 3}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.75rem', height: 20 }}
+                />
               )}
-            </div>
+            </Box>
           )}
         </CardContent>
+
+        <CardActions sx={{ pt: 0, pb: 2, px: 2 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+            <Typography variant="caption" color="text.secondary">
+              {formatDate(note.updatedAt)}
+            </Typography>
+            
+            {folder && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: folder.color
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {folder.name}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </CardActions>
       </Card>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Edit
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Modals */}
+      <EditNoteModal
+        note={note}
+        folders={folders}
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onUpdateNote={onUpdateNote}
+      />
 
       <NoteDetailModal
         note={note}
         folders={folders}
         open={showDetailModal}
-        onOpenChange={setShowDetailModal}
+        onClose={() => setShowDetailModal(false)}
         onUpdateNote={onUpdateNote}
         onDeleteNote={onDeleteNote}
-        onEditNote={() => {
-          setShowDetailModal(false);
-          setShowEditModal(true);
-        }}
-      />
-
-      <EditNoteModal
-        note={note}
-        folders={folders}
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-        onUpdateNote={onUpdateNote}
       />
     </>
   );

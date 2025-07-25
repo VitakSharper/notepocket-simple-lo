@@ -1,3 +1,4 @@
+import { Box, Typography } from '@mui/material';
 import { EmbeddedImage } from '@/lib/types';
 import { ResizableImage } from './ResizableImage';
 
@@ -7,6 +8,7 @@ interface NoteContentRendererProps {
   className?: string;
   isEditable?: boolean;
   onImageSizeChange?: (imageId: string, width: number, height: number) => void;
+  maxLines?: number;
 }
 
 export function NoteContentRenderer({ 
@@ -14,7 +16,8 @@ export function NoteContentRenderer({
   embeddedImages = [], 
   className = "",
   isEditable = false,
-  onImageSizeChange 
+  onImageSizeChange,
+  maxLines
 }: NoteContentRendererProps) {
   const renderContentWithImages = () => {
     if (!content) return null;
@@ -32,60 +35,69 @@ export function NoteContentRenderer({
         
         if (image) {
           return (
-            <div key={index} className="my-4">
+            <Box key={index} sx={{ my: 2 }}>
               <ResizableImage
                 image={image}
                 altText={altText}
                 isEditable={isEditable}
                 onSizeChange={onImageSizeChange}
               />
-            </div>
+            </Box>
           );
         } else {
           // Image not found, show placeholder
           return (
-            <div key={index} className="my-4 p-4 border border-dashed border-muted-foreground/30 rounded-lg text-center text-muted-foreground">
-              <p className="text-sm">Image not found: {altText || 'Untitled'}</p>
-            </div>
+            <Box 
+              key={index} 
+              sx={{ 
+                my: 2, 
+                p: 2, 
+                border: '2px dashed', 
+                borderColor: 'grey.300', 
+                borderRadius: 1, 
+                textAlign: 'center',
+                color: 'text.secondary'
+              }}
+            >
+              <Typography variant="body2">
+                Image not found: {altText || 'Untitled'}
+              </Typography>
+            </Box>
           );
         }
+      } else {
+        // Regular text content
+        return (
+          <Typography 
+            key={index} 
+            variant="body2" 
+            component="span"
+            sx={{ 
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              ...(maxLines && {
+                display: '-webkit-box',
+                WebkitLineClamp: maxLines,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              })
+            }}
+            className={className}
+          >
+            {part}
+          </Typography>
+        );
       }
-      
-      // Regular text content - process basic markdown
-      return (
-        <div key={index} className="whitespace-pre-wrap">
-          {processBasicMarkdown(part)}
-        </div>
-      );
     });
   };
 
-  const processBasicMarkdown = (text: string) => {
-    if (!text) return null;
-
-    // Simple markdown processing for common patterns
-    let processed = text;
-    
-    // Bold text (**text** or __text__)
-    processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    processed = processed.replace(/__(.*?)__/g, '<strong>$1</strong>');
-    
-    // Italic text (*text* or _text_)
-    processed = processed.replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '<em>$1</em>');
-    processed = processed.replace(/(?<!_)_(?!_)([^_]+)_(?!_)/g, '<em>$1</em>');
-    
-    // Code inline (`code`)
-    processed = processed.replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>');
-    
-    // Links [text](url)
-    processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">$1</a>');
-
-    return <span dangerouslySetInnerHTML={{ __html: processed }} />;
-  };
-
   return (
-    <div className={className}>
+    <Box sx={{ 
+      color: 'text.secondary',
+      '& > *:first-of-type': { mt: 0 },
+      '& > *:last-child': { mb: 0 }
+    }}>
       {renderContentWithImages()}
-    </div>
+    </Box>
   );
 }

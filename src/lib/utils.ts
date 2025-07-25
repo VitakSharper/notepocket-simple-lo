@@ -1,10 +1,4 @@
 import { Note, Folder } from './types';
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
 
 // Helper function to generate unique IDs
 export const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -37,9 +31,16 @@ export const getFileExtension = (filename: string): string => {
   return filename.split('.').pop()?.toLowerCase() || '';
 };
 
-// Check if file is an image
-export const isImageFile = (mimeType: string): boolean => {
-  return mimeType.startsWith('image/');
+// Check if file is an image by mime type or filename
+export const isImageFile = (mimeTypeOrFilename: string): boolean => {
+  if (mimeTypeOrFilename.startsWith('image/')) {
+    return true;
+  }
+  
+  // Check by file extension if not a mime type
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+  const extension = getFileExtension(mimeTypeOrFilename);
+  return imageExtensions.includes(extension);
 };
 
 // Check if file is a PDF

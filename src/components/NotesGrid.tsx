@@ -1,3 +1,4 @@
+import { Box, Typography, Grid, List } from '@mui/material';
 import { Note, Folder, ViewMode } from '@/lib/types';
 import { NoteCard } from './NoteCard';
 import { NoteListItem } from './NoteListItem';
@@ -19,19 +20,30 @@ export function NotesGrid({
 }: NotesGridProps) {
   if (notes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <div className="text-4xl mb-4">📝</div>
-        <h3 className="text-lg font-medium text-foreground">No notes yet</h3>
-        <p className="text-muted-foreground max-w-sm">
+      <Box 
+        display="flex" 
+        flexDirection="column" 
+        alignItems="center" 
+        justifyContent="center" 
+        height="300px" 
+        textAlign="center"
+      >
+        <Typography variant="h1" sx={{ fontSize: '3rem', mb: 2 }}>
+          📝
+        </Typography>
+        <Typography variant="h5" fontWeight="medium" color="text.primary" sx={{ mb: 1 }}>
+          No notes yet
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 300 }}>
           Start capturing your thoughts, images, and files. Your first note is just a click away.
-        </p>
-      </div>
+        </Typography>
+      </Box>
     );
   }
 
   if (viewMode === 'list') {
     return (
-      <div className="space-y-2">
+      <List sx={{ width: '100%', p: 0 }}>
         {notes.map((note) => (
           <NoteListItem
             key={note.id}
@@ -41,21 +53,22 @@ export function NotesGrid({
             onDeleteNote={onDeleteNote}
           />
         ))}
-      </div>
+      </List>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <Grid container spacing={2}>
       {notes.map((note) => (
-        <NoteCard
-          key={note.id}
-          note={note}
-          folders={folders}
-          onUpdateNote={onUpdateNote}
-          onDeleteNote={onDeleteNote}
-        />
+        <Grid item xs={12} sm={6} md={4} lg={3} key={note.id}>
+          <NoteCard
+            note={note}
+            folders={folders}
+            onUpdateNote={onUpdateNote}
+            onDeleteNote={onDeleteNote}
+          />
+        </Grid>
       ))}
-    </div>
+    </Grid>
   );
 }

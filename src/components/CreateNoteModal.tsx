@@ -1,15 +1,32 @@
 import { useState, useRef } from 'react';
-import { FileText, Image, File, Upload, X } from '@phosphor-icons/react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Box,
+  Typography,
+  Paper,
+  IconButton,
+  ToggleButtonGroup,
+  ToggleButton
+} from '@mui/material';
+import {
+  Description as FileTextIcon,
+  Image as ImageIcon,
+  AttachFile as FileIcon,
+  Upload as UploadIcon,
+  Close as CloseIcon
+} from '@mui/icons-material';
 import { Note, Folder, EmbeddedImage } from '@/lib/types';
 import { validateFileType, fileToBase64, formatFileSize } from '@/lib/utils';
-import { RichTextEditor } from './RichTextEditor';
-import { toast } from 'sonner';
 
 interface CreateNoteModalProps {
   open: boolean;
@@ -31,7 +48,7 @@ export function CreateNoteModal({
   const [noteType, setNoteType] = useState<NoteType>('text');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(selectedFolder || undefined);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(selectedFolder || '');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -45,7 +62,7 @@ export function CreateNoteModal({
     setNoteType('text');
     setTitle('');
     setContent('');
-    setSelectedFolderId(selectedFolder || undefined);
+    setSelectedFolderId(selectedFolder || '');
     setTags([]);
     setTagInput('');
     setFile(null);
@@ -54,56 +71,48 @@ export function CreateNoteModal({
     setIsUploading(false);
   };
 
+  const handleClose = () => {
+    resetForm();
+    onOpenChange(false);
+  };
+
   const handleFileSelect = async (selectedFile: File) => {
-    if (!validateFileType(selectedFile)) {
-      toast.error('Unsupported file type. Please select an image, PDF, or text file.');
-      return;
-    }
+    try {
+      if (!validateFileType(selectedFile)) {
+        alert('Unsupported file type');
+        return;
+      }
 
-    if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('File size must be less than 10MB.');
-      return;
-    }
-
-    setFile(selectedFile);
-    
-    // Set title to filename if not already set
-    if (!title) {
-      setTitle(selectedFile.name.replace(/\.[^/.]+$/, '')); // Remove extension
-    }
-
-    // Create preview for images
-    if (selectedFile.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => setFilePreview(e.target?.result as string);
-      reader.readAsDataURL(selectedFile);
-      setNoteType('image');
-    } else {
-      setNoteType('file');
-      setFilePreview(null);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      handleFileSelect(droppedFile);
+      setFile(selectedFile);
+      
+      if (selectedFile.type.startsWith('image/')) {
+        const preview = await fileToBase64(selectedFile);
+        setFilePreview(preview);
+        setNoteType('image');
+        
+        if (!title) {
+          setTitle(selectedFile.name.replace(/\.[^/.]+$/, ''));
+        }
+      } else {
+        setNoteType('file');
+        if (!title) {
+          setTitle(selectedFile.name);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing file:', error);
+      alert('Error processing file');
     }
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      handleFileSelect(selectedFile);
-    }
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
   };
 
-  const addTag = () => {
-    const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-      setTagInput('');
+  const addTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      setTags([...tags, trimmedTag]);
     }
   };
 
@@ -111,14 +120,21 @@ export function CreateNoteModal({
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = async () => {
-    if (!title.trim()) {
-      toast.error('Please enter a title for your note.');
-      return;
+  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      if (tagInput.trim()) {
+        addTag(tagInput);
+        setTagInput('');
+      }
     }
+  };
 
-    if ((noteType === 'image' || noteType === 'file') && !file) {
-      toast.error('Please select a file.');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title.trim()) {
+      alert('Title is required');
       return;
     }
 
@@ -142,243 +158,214 @@ export function CreateNoteModal({
         content: content.trim(),
         type: noteType,
         tags,
-        folderId: selectedFolderId,
+        folderId: selectedFolderId || null,
         isFavorite: false,
         fileUrl,
         fileName,
         fileSize,
         fileMimeType,
-        embeddedImages: noteType === 'text' ? embeddedImages : undefined,
+        embeddedImages,
       };
 
       await onCreateNote(newNote);
-      toast.success('Note created successfully!');
-      resetForm();
-      onOpenChange(false);
+      handleClose();
     } catch (error) {
-      toast.error('Failed to create note. Please try again.');
+      console.error('Error creating note:', error);
+      alert('Failed to create note');
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Note</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Note Type Selection */}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={noteType === 'text' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setNoteType('text')}
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        Create New Note
+      </DialogTitle>
+      
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Note Type
+            </Typography>
+            <ToggleButtonGroup
+              value={noteType}
+              exclusive
+              onChange={(_, value) => value && setNoteType(value)}
+              size="small"
             >
-              <FileText className="h-4 w-4 mr-2" />
-              Text
-            </Button>
-            <Button
-              type="button"
-              variant={noteType === 'image' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setNoteType('image');
-                fileInputRef.current?.click();
-              }}
-            >
-              <Image className="h-4 w-4 mr-2" />
-              Image
-            </Button>
-            <Button
-              type="button"
-              variant={noteType === 'file' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setNoteType('file');
-                fileInputRef.current?.click();
-              }}
-            >
-              <File className="h-4 w-4 mr-2" />
-              File
-            </Button>
-          </div>
+              <ToggleButton value="text">
+                <FileTextIcon sx={{ mr: 1 }} />
+                Text
+              </ToggleButton>
+              <ToggleButton value="image">
+                <ImageIcon sx={{ mr: 1 }} />
+                Image
+              </ToggleButton>
+              <ToggleButton value="file">
+                <FileIcon sx={{ mr: 1 }} />
+                File
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
 
-          {/* File Upload Area */}
+          <TextField
+            fullWidth
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            sx={{ mb: 2 }}
+            required
+          />
+
           {(noteType === 'image' || noteType === 'file') && (
-            <div
-              className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-accent transition-colors"
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              {file ? (
-                <div className="space-y-4">
-                  {filePreview && (
-                    <img
-                      src={filePreview}
-                      alt="Preview"
-                      className="max-w-full max-h-48 mx-auto rounded-md"
-                    />
-                  )}
-                  <div className="flex items-center justify-center gap-2">
-                    <File className="h-4 w-4" />
-                    <span className="text-sm font-medium">{file.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({formatFileSize(file.size)})
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
+            <Box sx={{ mb: 2 }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={noteType === 'image' ? 'image/*' : '*'}
+                onChange={(e) => {
+                  const selectedFile = e.target.files?.[0];
+                  if (selectedFile) {
+                    handleFileSelect(selectedFile);
+                  }
+                }}
+                style={{ display: 'none' }}
+              />
+              
+              {!file ? (
+                <Paper
+                  sx={{
+                    p: 3,
+                    textAlign: 'center',
+                    border: '2px dashed',
+                    borderColor: 'grey.300',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'grey.50'
+                    }
+                  }}
+                  onClick={handleFileUpload}
+                >
+                  <UploadIcon sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
+                  <Typography variant="body1">
+                    Click to select {noteType === 'image' ? 'an image' : 'a file'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {noteType === 'image' ? 'PNG, JPG, WebP' : 'Any file type'}
+                  </Typography>
+                </Paper>
+              ) : (
+                <Paper sx={{ p: 2, position: 'relative' }}>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    {filePreview && noteType === 'image' ? (
+                      <img
+                        src={filePreview}
+                        alt="Preview"
+                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }}
+                      />
+                    ) : (
+                      <FileIcon sx={{ fontSize: 48, color: 'grey.500' }} />
+                    )}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="medium">
+                        {file.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatFileSize(file.size)}
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
                       onClick={() => {
                         setFile(null);
                         setFilePreview(null);
                       }}
                     >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Drop your file here or{' '}
-                    <button
-                      type="button"
-                      className="text-accent hover:underline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      browse
-                    </button>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Supports images, PDFs, and text files (max 10MB)
-                  </p>
-                </div>
+                      <CloseIcon />
+                    </IconButton>
+                  </Box>
+                </Paper>
               )}
-            </div>
+            </Box>
           )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.pdf,.txt,.md"
-            onChange={handleFileInputChange}
-            className="hidden"
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            sx={{ mb: 2 }}
           />
 
-          {/* Title */}
-          <div>
-            <label className="text-sm font-medium">Title</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter note title..."
-              className="mt-1"
-            />
-          </div>
-
-          {/* Content (for text notes or additional description) */}
-          {noteType === 'text' ? (
-            <RichTextEditor
-              content={content}
-              embeddedImages={embeddedImages}
-              onContentChange={setContent}
-              onEmbeddedImagesChange={setEmbeddedImages}
-              placeholder="Write your note content..."
-              rows={6}
-            />
-          ) : (
-            <div>
-              <label className="text-sm font-medium">Description (Optional)</label>
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Add a description for this file..."
-                rows={3}
-                className="mt-1"
-              />
-            </div>
-          )}
-
-          {/* Folder Selection */}
-          <div>
-            <label className="text-sm font-medium">Folder (Optional)</label>
-            <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select a folder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No folder</SelectItem>
-                {folders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: folder.color }}
-                      />
-                      {folder.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Folder</InputLabel>
+            <Select
+              value={selectedFolderId}
+              onChange={(e) => setSelectedFolderId(e.target.value)}
+              label="Folder"
+            >
+              <MenuItem value="">
+                <em>No folder</em>
+              </MenuItem>
+              {folders.map((folder) => (
+                <MenuItem key={folder.id} value={folder.id}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        bgcolor: folder.color
+                      }}
+                    />
+                    {folder.name}
+                  </Box>
+                </MenuItem>
+              ))}
             </Select>
-          </div>
+          </FormControl>
 
-          {/* Tags */}
-          <div>
-            <label className="text-sm font-medium">Tags (Optional)</label>
-            <div className="mt-1 space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Add a tag..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addTag();
-                    }
-                  }}
+          <TextField
+            fullWidth
+            label="Tags (press Enter to add)"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagInputKeyDown}
+            sx={{ mb: 1 }}
+          />
+
+          {tags.length > 0 && (
+            <Box display="flex" flexWrap="wrap" gap={0.5} sx={{ mb: 2 }}>
+              {tags.map((tag) => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  size="small"
+                  onDelete={() => removeTag(tag)}
                 />
-                <Button type="button" onClick={addTag} disabled={!tagInput.trim()}>
-                  Add
-                </Button>
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="cursor-pointer">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isUploading}>
-              {isUploading ? 'Creating...' : 'Create Note'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} disabled={isUploading}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            disabled={isUploading || !title.trim()}
+          >
+            {isUploading ? 'Creating...' : 'Create Note'}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 }
