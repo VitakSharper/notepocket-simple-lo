@@ -209,8 +209,6 @@ function App() {
   return (
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
-      <Box display="flex" height="100vh" bgcolor="background.default"
-        {/* Mobile layout */}
       <Box display="flex" height="100vh" bgcolor="background.default">
         {/* Mobile layout */}
         <Box sx={{ display: { xs: 'flex', lg: 'none' } }} width="100%">
