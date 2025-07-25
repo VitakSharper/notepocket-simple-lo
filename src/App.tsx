@@ -211,7 +211,6 @@ function App() {
           notes={notes}
           onImport={handleImportData}
         />
-        />
         
         <div className="flex-1 flex flex-col">
           <Header
