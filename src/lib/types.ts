@@ -21,6 +21,8 @@ export interface EmbeddedImage {
   alt: string;
   fileName: string;
   fileSize: number;
+  width?: number;
+  height?: number;
 }
 
 export interface Folder {

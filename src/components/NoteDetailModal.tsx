@@ -29,11 +29,19 @@ export function NoteDetailModal({
 
   const folder = folders.find(f => f.id === note.folderId);
 
-  const toggleFavorite = () => {
+  const handleImageSizeChange = (imageId: string, width: number, height: number) => {
+    if (!note.embeddedImages) return;
+    
+    const updatedImages = note.embeddedImages.map(img => 
+      img.id === imageId ? { ...img, width, height } : img
+    );
+    
+    onUpdateNote(note.id, { embeddedImages: updatedImages });
+  };
     onUpdateNote(note.id, { isFavorite: !note.isFavorite });
   };
 
-  const getTypeIcon = () => {
+  const toggleFavorite = () => {
     switch (note.type) {
       case 'text':
         return <FileText className="h-4 w-4" />;
@@ -80,6 +88,8 @@ export function NoteDetailModal({
           content={note.content}
           embeddedImages={note.embeddedImages}
           className="prose prose-sm max-w-none"
+          isEditable={true}
+          onImageSizeChange={handleImageSizeChange}
         />
       );
     }

@@ -18,10 +18,12 @@
 ### 1. Enhanced Text Notes with Embedded Images
 - Rich text editor with markdown support
 - **NEW**: Ability to embed images directly within text notes
+- **NEW**: Resizable images with drag handles for custom sizing
 - Image upload via file picker or drag & drop
 - Image insertion via URL
 - Support for image captions and alt text
 - Embedded images are stored with the note
+- **NEW**: Image size persistence and visual feedback during resizing
 
 ### 2. Multi-format Note Support
 - Text notes with embedded images
@@ -31,14 +33,16 @@
 
 ### 3. Improved Note Editing
 - **NEW**: Rich text editor with image embedding toolbar
-- **NEW**: Visual management of embedded images
+- **NEW**: Visual management of embedded images with resize handles
 - **NEW**: Image removal and replacement
+- **NEW**: Live preview of image resizing with dimension indicators
 - Real-time preview of embedded content
 
 ### 4. Enhanced Note Viewing
 - **NEW**: Detailed note view modal for full content display
-- **NEW**: Proper rendering of embedded images in full size
+- **NEW**: Proper rendering of embedded images in full size with resize capability
 - **NEW**: Click-to-expand functionality for all notes
+- **NEW**: Interactive image resizing in both edit and view modes
 - Responsive image display
 
 ### 5. Organization & Management
@@ -104,17 +108,20 @@
    - Select text note type
    - Use rich text editor with "Add Image" button
    - Upload images or paste URLs
+   - **NEW**: Resize images using visual drag handles on corners and edges
    - Add captions and organize content
-   - Save with embedded images
+   - Save with embedded images and custom dimensions
 
 2. **Viewing Notes**:
    - Click any note card to open detail view
-   - See full content with properly rendered images
+   - See full content with properly rendered images at saved sizes
+   - **NEW**: Resize images directly in view mode for better readability
    - Navigate between edit and view modes
    - Quick actions (favorite, edit, delete)
 
 3. **Managing Content**:
    - Edit notes with embedded image management
+   - **NEW**: Interactive image resizing with real-time dimension feedback
    - Remove or replace images within notes
    - Organize notes into folders
    - Search across all content types
@@ -122,7 +129,9 @@
 ## Success Metrics
 
 - Users can successfully embed and manage images in text notes
-- Notes with embedded images render properly across all views
+- **NEW**: Users can intuitively resize images using visual drag handles
+- Notes with embedded images render properly across all views at custom sizes
 - Image upload and management feels intuitive
+- **NEW**: Image resizing provides immediate visual feedback and maintains aspect ratios
 - Performance remains smooth with embedded media
-- Local storage efficiently handles image data
+- Local storage efficiently handles image data and dimensions

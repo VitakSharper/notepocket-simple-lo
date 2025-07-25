@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EmbeddedImage } from '@/lib/types';
 import { fileToBase64, validateFileType, formatFileSize } from '@/lib/utils';
+import { ResizableImage } from './ResizableImage';
 import { toast } from 'sonner';
 
 interface RichTextEditorProps {
@@ -116,7 +117,12 @@ export function RichTextEditor({
     toast.success('Image added to note!');
   };
 
-  const removeEmbeddedImage = (imageId: string) => {
+  const handleImageSizeChange = (imageId: string, width: number, height: number) => {
+    const updatedImages = embeddedImages.map(img => 
+      img.id === imageId ? { ...img, width, height } : img
+    );
+    onEmbeddedImagesChange(updatedImages);
+  };
     // Remove from embedded images array
     onEmbeddedImagesChange(embeddedImages.filter(img => img.id !== imageId));
     
@@ -276,29 +282,29 @@ export function RichTextEditor({
       {embeddedImages.length > 0 && (
         <div className="space-y-2">
           <label className="text-sm font-medium">Embedded Images</label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {embeddedImages.map((image) => (
               <div key={image.id} className="relative group">
-                <div className="aspect-video bg-muted rounded-md overflow-hidden">
-                  <img
-                    src={image.url}
-                    alt={image.alt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <ResizableImage
+                  image={image}
+                  isEditable={true}
+                  onSizeChange={handleImageSizeChange}
+                />
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   onClick={() => removeEmbeddedImage(image.id)}
                   type="button"
                 >
                   <X className="h-3 w-3" />
                 </Button>
-                <div className="mt-1 text-xs text-muted-foreground truncate">
-                  {image.alt}
+                <div className="mt-1 text-xs text-muted-foreground">
                   {image.fileSize > 0 && (
-                    <span className="ml-1">({formatFileSize(image.fileSize)})</span>
+                    <span>Size: {formatFileSize(image.fileSize)}</span>
+                  )}
+                  {image.width && image.height && (
+                    <span className="ml-2">Dimensions: {Math.round(image.width)} × {Math.round(image.height)}</span>
                   )}
                 </div>
               </div>

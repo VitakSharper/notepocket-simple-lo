@@ -1,15 +1,20 @@
 import { EmbeddedImage } from '@/lib/types';
+import { ResizableImage } from './ResizableImage';
 
 interface NoteContentRendererProps {
   content: string;
   embeddedImages?: EmbeddedImage[];
   className?: string;
+  isEditable?: boolean;
+  onImageSizeChange?: (imageId: string, width: number, height: number) => void;
 }
 
 export function NoteContentRenderer({ 
   content, 
   embeddedImages = [], 
-  className = "" 
+  className = "",
+  isEditable = false,
+  onImageSizeChange 
 }: NoteContentRendererProps) {
   const renderContentWithImages = () => {
     if (!content) return null;
@@ -28,17 +33,12 @@ export function NoteContentRenderer({
         if (image) {
           return (
             <div key={index} className="my-4">
-              <img
-                src={image.url}
-                alt={altText || image.alt}
-                className="max-w-full rounded-lg shadow-sm"
-                loading="lazy"
+              <ResizableImage
+                image={image}
+                altText={altText}
+                isEditable={isEditable}
+                onSizeChange={onImageSizeChange}
               />
-              {(altText || image.alt) && (
-                <p className="text-sm text-muted-foreground mt-2 italic">
-                  {altText || image.alt}
-                </p>
-              )}
             </div>
           );
         } else {
