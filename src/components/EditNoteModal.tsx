@@ -30,17 +30,6 @@ export function EditNoteModal({
   const [tags, setTags] = useState<string[]>(note.tags);
   const [tagInput, setTagInput] = useState('');
 
-  // Reset form when note changes or modal opens
-  useEffect(() => {
-    if (open) {
-      setTitle(note.title);
-      setContent(note.content);
-      setSelectedFolderId(note.folderId);
-      setTags(note.tags);
-      setTagInput('');
-    }  
-  }, [note, open]);
-
   const addTag = () => {
     const tag = tagInput.trim();
     if (tag && !tags.includes(tag)) {
@@ -70,6 +59,34 @@ export function EditNoteModal({
     toast.success('Note updated successfully!');
     onOpenChange(false);
   };
+
+  // Reset form when note changes or modal opens
+  useEffect(() => {
+    if (open) {
+      setTitle(note.title);
+      setContent(note.content);
+      setSelectedFolderId(note.folderId);
+      setTags(note.tags);
+      setTagInput('');
+    }  
+  }, [note, open]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return;
+      
+      if (e.key === 'Escape') {
+        onOpenChange(false);
+      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, handleSubmit, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -200,13 +217,18 @@ export function EditNoteModal({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit}>
-              Update Note
-            </Button>
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-xs text-muted-foreground">
+              Press Cmd/Ctrl + Enter to save, Esc to cancel
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit}>
+                Update Note
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
