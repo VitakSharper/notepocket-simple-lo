@@ -29,6 +29,7 @@ export function RichTextEditor({
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -124,6 +125,40 @@ export function RichTextEditor({
     onContentChange(content.replace(regex, ''));
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set dragOver to false if we're leaving the textarea entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      toast.error('Please drop image files only.');
+      return;
+    }
+
+    // Process each image file
+    for (const file of imageFiles) {
+      await handleFileUpload(file);
+    }
+  };
+
   const renderContentWithImages = () => {
     let processedContent = content;
     
@@ -211,14 +246,32 @@ export function RichTextEditor({
         </Dialog>
       </div>
 
-      <Textarea
-        ref={textareaRef}
-        value={content}
-        onChange={(e) => onContentChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className="font-mono text-sm"
-      />
+      <div className="relative">
+        <Textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => onContentChange(e.target.value)}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          placeholder={placeholder}
+          rows={rows}
+          className={`font-mono text-sm transition-colors ${
+            isDragOver 
+              ? 'border-primary border-2 bg-primary/5' 
+              : ''
+          }`}
+        />
+        
+        {isDragOver && (
+          <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-md flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <Image className="h-8 w-8 mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium text-primary">Drop images here</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {embeddedImages.length > 0 && (
         <div className="space-y-2">
@@ -255,7 +308,7 @@ export function RichTextEditor({
       )}
 
       <div className="text-xs text-muted-foreground">
-        Use Markdown syntax or add images using the button above. Images will be embedded in your note.
+        Use Markdown syntax or add images using the button above. You can also drag and drop images directly into the text area. Images will be embedded in your note.
       </div>
     </div>
   );
