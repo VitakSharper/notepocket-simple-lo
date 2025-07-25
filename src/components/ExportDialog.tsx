@@ -57,8 +57,7 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
 
     setIsImporting(true);
     try {
-      const jsonString = await importFile.text();
-      const importData = parseImportData(jsonString);
+      const importData = await parseImportData(importFile);
       
       if (!importData) {
         toast.error('Invalid backup file format');
