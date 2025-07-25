@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Image, Link2, X } from '@phosphor-icons/react';
+import { Image, Link, X } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -123,6 +123,8 @@ export function RichTextEditor({
     );
     onEmbeddedImagesChange(updatedImages);
   };
+
+  const removeEmbeddedImage = (imageId: string) => {
     // Remove from embedded images array
     onEmbeddedImagesChange(embeddedImages.filter(img => img.id !== imageId));
     
@@ -242,7 +244,7 @@ export function RichTextEditor({
                       placeholder="https://example.com/image.jpg"
                     />
                     <Button onClick={handleUrlImage} disabled={!imageUrl.trim()} type="button">
-                      <Link2 className="h-4 w-4" />
+                      <Link className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

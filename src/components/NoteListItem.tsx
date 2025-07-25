@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, StarFill, MoreHorizontal, FileText, Image, File, Trash, Edit } from '@phosphor-icons/react';
+import { Star, DotsThree, FileText, Image, File, Trash, PencilSimple } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -72,7 +72,7 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
                 }}
               >
                 {note.isFavorite ? (
-                  <StarFill className="h-3 w-3 text-accent" />
+                  <Star className="h-3 w-3 text-accent" weight="fill" />
                 ) : (
                   <Star className="h-3 w-3" />
                 )}
@@ -86,12 +86,12 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
                     className="h-7 w-7 p-0"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MoreHorizontal className="h-3 w-3" />
+                    <DotsThree className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
+                    <PencilSimple className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 

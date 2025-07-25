@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FolderSimple, Star, Trash, MoreHorizontal } from '@phosphor-icons/react';
+import { Plus, FolderSimple, Star, Trash, DotsThree } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -163,7 +163,7 @@ export function Sidebar({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-3 w-3" />
+                      <DotsThree className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

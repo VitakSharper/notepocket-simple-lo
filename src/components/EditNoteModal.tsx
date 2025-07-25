@@ -154,11 +154,7 @@ export function EditNoteModal({
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder={
-                  note.type === 'text' 
-                    ? "Write your note content..." 
-                    : "Add a description for this file..."
-                }
+                placeholder="Add a description for this file..."
                 rows={6}
                 className="mt-1"
               />

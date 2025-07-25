@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, StarFill, Edit, Trash, FileText, Image, File } from '@phosphor-icons/react';
+import { Star, PencilSimple, Trash, FileText, Image, File } from '@phosphor-icons/react';
 import { Note, Folder } from '@/lib/types';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import { NoteContentRenderer } from './NoteContentRenderer';
@@ -38,10 +38,12 @@ export function NoteDetailModal({
     
     onUpdateNote(note.id, { embeddedImages: updatedImages });
   };
+
+  const toggleFavorite = () => {
     onUpdateNote(note.id, { isFavorite: !note.isFavorite });
   };
 
-  const toggleFavorite = () => {
+  const getTypeIcon = () => {
     switch (note.type) {
       case 'text':
         return <FileText className="h-4 w-4" />;
@@ -132,7 +134,7 @@ export function NoteDetailModal({
                 onClick={toggleFavorite}
               >
                 {note.isFavorite ? (
-                  <StarFill className="h-4 w-4 text-accent" />
+                  <Star className="h-4 w-4 text-accent" weight="fill" />
                 ) : (
                   <Star className="h-4 w-4" />
                 )}
@@ -143,7 +145,7 @@ export function NoteDetailModal({
                 size="sm"
                 onClick={onEditNote}
               >
-                <Edit className="h-4 w-4" />
+                <PencilSimple className="h-4 w-4" />
               </Button>
               
               <Button

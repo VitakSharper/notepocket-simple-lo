@@ -22,15 +22,15 @@ function App() {
 
   // Initialize with demo data on first visit
   useEffect(() => {
-    if (notes.length === 0 && folders.length === 0) {
+    if ((notes?.length || 0) === 0 && (folders?.length || 0) === 0) {
       setNotes(demoNotes);
       setFolders(demoFolders);
     }
-  }, [notes.length, folders.length, setNotes, setFolders]);
+  }, [notes?.length, folders?.length, setNotes, setFolders]);
 
   // Filter and search notes
   const filteredNotes = () => {
-    let result = notes;
+    let result = notes || [];
     
     // Apply search
     if (searchQuery) {
@@ -57,12 +57,12 @@ function App() {
       updatedAt: new Date(),
     };
     
-    setNotes(currentNotes => [...currentNotes, newNote]);
+    setNotes(currentNotes => [...(currentNotes || []), newNote]);
   };
 
   const handleUpdateNote = (noteId: string, updates: Partial<Note>) => {
     setNotes(currentNotes => 
-      currentNotes.map(note => 
+      (currentNotes || []).map(note => 
         note.id === noteId 
           ? { ...note, ...updates, updatedAt: new Date() }
           : note
@@ -71,7 +71,7 @@ function App() {
   };
 
   const handleDeleteNote = (noteId: string) => {
-    setNotes(currentNotes => currentNotes.filter(note => note.id !== noteId));
+    setNotes(currentNotes => (currentNotes || []).filter(note => note.id !== noteId));
   };
 
   const handleCreateFolder = (name: string, color: string) => {
@@ -82,16 +82,16 @@ function App() {
       createdAt: new Date(),
     };
     
-    setFolders(currentFolders => [...currentFolders, newFolder]);
+    setFolders(currentFolders => [...(currentFolders || []), newFolder]);
   };
 
   const handleDeleteFolder = (folderId: string) => {
     // Remove folder
-    setFolders(currentFolders => currentFolders.filter(folder => folder.id !== folderId));
+    setFolders(currentFolders => (currentFolders || []).filter(folder => folder.id !== folderId));
     
     // Remove folder reference from notes
     setNotes(currentNotes => 
-      currentNotes.map(note => 
+      (currentNotes || []).map(note => 
         note.folderId === folderId 
           ? { ...note, folderId: undefined }
           : note
@@ -123,7 +123,7 @@ function App() {
             <NotesGrid
               notes={filteredNotes()}
               viewMode={viewMode}
-              folders={folders}
+              folders={folders || []}
               onUpdateNote={handleUpdateNote}
               onDeleteNote={handleDeleteNote}
             />
@@ -134,15 +134,15 @@ function App() {
       {/* Desktop layout */}
       <div className="hidden lg:flex w-full h-full">
         <Sidebar
-          folders={folders}
+          folders={folders || []}
           selectedFolder={selectedFolder}
           onSelectFolder={setSelectedFolder}
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           showFavoritesOnly={showFavoritesOnly}
           onToggleFavorites={setShowFavoritesOnly}
-          noteCount={notes.length}
-          favoriteCount={notes.filter(n => n.isFavorite).length}
+          noteCount={(notes || []).length}
+          favoriteCount={(notes || []).filter(n => n.isFavorite).length}
         />
         
         <div className="flex-1 flex flex-col">
@@ -160,7 +160,7 @@ function App() {
             <NotesGrid
               notes={filteredNotes()}
               viewMode={viewMode}
-              folders={folders}
+              folders={folders || []}
               onUpdateNote={handleUpdateNote}
               onDeleteNote={handleDeleteNote}
             />
@@ -172,7 +172,7 @@ function App() {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onCreateNote={handleCreateNote}
-        folders={folders}
+        folders={folders || []}
         selectedFolder={selectedFolder}
       />
 
