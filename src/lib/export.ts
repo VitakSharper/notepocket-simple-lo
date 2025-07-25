@@ -194,7 +194,7 @@ export function exportAsCSV(notes: Note[], folders: Folder[]): void {
       `"${(note.title || '').replace(/"/g, '""')}"`, // Escape quotes
       `"${(note.content || '').replace(/<[^>]*>/g, '').replace(/"/g, '""')}"`, // Remove HTML tags and escape quotes
       note.type,
-      note.folderId ? `"${(folderMap.get(note.folderId) || '').replace(/"/g, '""')}"` : '',
+}      note.folderId ? `"${(folderMap.get(note.folderId) || '').replace(/"/g, '""')}"` : '',
       `"${note.tags.join(', ').replace(/"/g, '""')}"`,
       note.isFavorite ? 'Yes' : 'No',
       new Date(note.createdAt).toISOString(),
