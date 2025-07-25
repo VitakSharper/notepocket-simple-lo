@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, FileText, FilePdf, Upload } from '@phosphor-icons/react';
+import { Download, FileText, FilePdf, Table, Upload } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Note, Folder } from '@/lib/types';
-import { exportAsJSON, exportAsPDF, parseImportData, ExportData } from '@/lib/export';
+import { exportAsJSON, exportAsPDF, exportAsCSV, parseImportData, ExportData } from '@/lib/export';
 import { toast } from 'sonner';
 
 interface ExportDialogProps {
@@ -23,23 +23,46 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
 
   const handleExportJSON = () => {
     try {
+      if (notes.length === 0) {
+        toast.error('No notes to export');
+        return;
+      }
       exportAsJSON(notes, folders);
-      toast.success('Notes exported as JSON successfully');
+      toast.success(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
       setIsOpen(false);
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export notes as JSON');
+      console.error('JSON export failed:', error);
+      toast.error('Failed to export notes as JSON: ' + (error as Error).message);
     }
   };
 
   const handleExportPDF = () => {
     try {
+      if (notes.length === 0) {
+        toast.error('No notes to export');
+        return;
+      }
       exportAsPDF(notes, folders);
-      toast.success('Notes exported as PDF successfully');
+      toast.success(`Exported ${notes.length} notes as PDF`);
       setIsOpen(false);
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export notes as PDF');
+      console.error('PDF export failed:', error);
+      toast.error('Failed to export notes as PDF: ' + (error as Error).message);
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      if (notes.length === 0) {
+        toast.error('No notes to export');
+        return;
+      }
+      exportAsCSV(notes, folders);
+      toast.success(`Exported ${notes.length} notes as CSV`);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('CSV export failed:', error);
+      toast.error('Failed to export notes as CSV: ' + (error as Error).message);
     }
   };
 
@@ -58,19 +81,13 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
     setIsImporting(true);
     try {
       const importData = await parseImportData(importFile);
-      
-      if (!importData) {
-        toast.error('Invalid backup file format');
-        return;
-      }
-
       await onImport(importData);
       toast.success(`Imported ${importData.notes.length} notes and ${importData.folders.length} folders`);
       setIsOpen(false);
       setImportFile(null);
     } catch (error) {
       console.error('Import failed:', error);
-      toast.error('Failed to import backup file');
+      toast.error('Failed to import backup file: ' + (error as Error).message);
     } finally {
       setIsImporting(false);
     }
@@ -121,6 +138,20 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
                   <div className="font-medium">Export as PDF</div>
                   <div className="text-xs text-muted-foreground">
                     Printable document format
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                onClick={handleExportCSV}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                <Table className="h-4 w-4 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">Export as CSV</div>
+                  <div className="text-xs text-muted-foreground">
+                    Spreadsheet compatible format
                   </div>
                 </div>
               </Button>
@@ -185,7 +216,7 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
         </div>
 
         <div className="text-xs text-muted-foreground pt-4 border-t">
-          💡 JSON exports can be re-imported. PDF exports are for viewing and printing only.
+          💡 JSON exports can be re-imported. PDF and CSV exports are for viewing and external use only.
         </div>
       </DialogContent>
     </Dialog>
@@ -196,21 +227,43 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
 export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Folder[] }) {
   const handleExportJSON = () => {
     try {
+      if (notes.length === 0) {
+        toast.error('No notes to export');
+        return;
+      }
       exportAsJSON(notes, folders);
-      toast.success('Notes exported as JSON successfully');
+      toast.success(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export notes');
+      console.error('JSON export failed:', error);
+      toast.error('Failed to export notes as JSON: ' + (error as Error).message);
     }
   };
 
   const handleExportPDF = () => {
     try {
+      if (notes.length === 0) {
+        toast.error('No notes to export');
+        return;
+      }
       exportAsPDF(notes, folders);
-      toast.success('Notes exported as PDF successfully');
+      toast.success(`Exported ${notes.length} notes as PDF`);
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export notes');
+      console.error('PDF export failed:', error);
+      toast.error('Failed to export notes as PDF: ' + (error as Error).message);
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      if (notes.length === 0) {
+        toast.error('No notes to export');
+        return;
+      }
+      exportAsCSV(notes, folders);
+      toast.success(`Exported ${notes.length} notes as CSV`);
+    } catch (error) {
+      console.error('CSV export failed:', error);
+      toast.error('Failed to export notes as CSV: ' + (error as Error).message);
     }
   };
 
@@ -230,6 +283,10 @@ export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Fol
         <DropdownMenuItem onClick={handleExportPDF}>
           <FilePdf className="h-4 w-4 mr-2" />
           Export as PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleExportCSV}>
+          <Table className="h-4 w-4 mr-2" />
+          Export as CSV
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
