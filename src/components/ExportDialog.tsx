@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Note, Folder } from '@/lib/types';
-import { exportAsJSON, exportAsPDF, parseJSONImport, ExportData } from '@/lib/export';
+import { exportAsJSON, exportAsPDF, parseJSONExport, ExportData } from '@/lib/export';
 import { toast } from 'sonner';
 
 interface ExportDialogProps {
@@ -58,7 +58,7 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
     setIsImporting(true);
     try {
       const jsonString = await importFile.text();
-      const importData = parseJSONImport(jsonString);
+      const importData = parseJSONExport(jsonString);
       
       if (!importData) {
         toast.error('Invalid backup file format');

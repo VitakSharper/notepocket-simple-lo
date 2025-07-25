@@ -1,102 +1,91 @@
 import jsPDF from 'jspdf';
+import { Note, Folder } from './types';
 
-
-  exportedAt: string;
-}
-/**
+export interface ExportData {
+  notes: Note[];
+  folders: Folder[];
   exportedAt: string;
   version: string;
 }
 
 /**
  * Export notes and folders as JSON
-   
+ */
 export function exportAsJSON(notes: Note[], folders: Folder[]): void {
   const exportData: ExportData = {
     notes,
     folders,
     exportedAt: new Date().toISOString(),
     version: '1.0',
-expo
+  };
 
-  const margin = 20;
-  let yPosition = margin;
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: 'application/json',
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `notepocket-export-${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
   
-    const lines = pdf.splitTextToSize(te
-    return y + (lines.length * fontSize * 0
+  URL.revokeObjectURL(url);
+}
 
-  const checkPageBreak = (requiredHeight: number) => {
-  
-    }
-
-  pdf.setFontSize(20);
-  pdf.text('NotePocket Expo
-
-
-  p
-  pdf.text(`Total note
-
-  const folderMap = new Map(folders.map(f => [f.id, f]));
+/**
+ * Export notes and folders as PDF
+ */
+export function exportAsPDF(notes: Note[], folders: Folder[]): void {
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 20;
-    } else {
+  const maxWidth = pageWidth - margin * 2;
   let yPosition = margin;
 
-  folders.forEach(folder => {
-    if (folderNotes.length === 0) return;
-    checkPageBreak(20);
-    pdf.setFontSize(16);
-    pdf.text(`📁 ${folder.name}`, margin, yPosi
-
+  // Helper function to add wrapped text
+  const addWrappedText = (text: string, x: number, y: number, maxWidth: number, fontSize: number): number => {
+    const lines = pdf.splitTextToSize(text, maxWidth);
+    pdf.text(lines, x, y);
+    return y + (lines.length * fontSize * 0.4);
+  };
 
   // Helper function to add new page if needed
   const checkPageBreak = (requiredHeight: number) => {
     if (yPosition + requiredHeight > pageHeight - margin) {
-      // Note metada
-      pdf.setFont('helvet
-     
-    
+      pdf.addPage();
+      yPosition = margin;
+    }
+  };
 
-        co
-          yPosition = 
-      }
-      // File information for file notes
-        pdf.setFon
+  // Title
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('NotePocket Export', margin, yPosition);
+  yPosition += 20;
 
+  // Export info
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`Exported on: ${new Date().toLocaleDateString()}`, margin, yPosition);
+  yPosition += 8;
+  pdf.text(`Total notes: ${notes.length}`, margin, yPosition);
+  yPosition += 8;
+  pdf.text(`Total folders: ${folders.length}`, margin, yPosition);
+  yPosition += 20;
 
-    });
-    yPosition += 5; // Space between 
+  const folderMap = new Map(folders.map(f => [f.id, f]));
+  const unfoldered = notes.filter(n => !n.folderId);
 
-  if (unfoldered.l
-    
-    pdf.setFont('h
+  // Group notes by folder
+  folders.forEach(folder => {
+    const folderNotes = notes.filter(n => n.folderId === folder.id);
+    if (folderNotes.length === 0) return;
 
-    unfoldered.forEach(not
-      
-      pdf.setFontSize(12);
-      yPosition = addWrappedText
+    checkPageBreak(20);
 
-      pdf.setFont('helvet
-      yPosition = addWrappedText(metaText, margin + 5, y
-      // Note content
-        pdf.setFontSize(10);
-      }
-          yPosition = addWrappedText(cleanContent, 
-      }
-      // File information fo
-     
-     
-
-    });
-
-  pdf.save(`notepocket-export-${new Date().toISOString().sp
-
-
-export function parseJS
-    
-    // Validate structur
+    // Folder header
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.text(`📁 ${folder.name}`, margin, yPosition);
     yPosition += 12;
@@ -137,7 +126,7 @@ export function parseJS
     });
 
     yPosition += 5; // Space between folders
-
+  });
 
   // Add unfoldered notes
   if (unfoldered.length > 0) {
@@ -193,8 +182,31 @@ export function parseJS
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
   
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
-
-
-
-
+/**
+ * Parse and validate imported JSON data
+ */
+export function parseJSONExport(jsonData: string): ExportData {
+  try {
+    const data = JSON.parse(jsonData);
+    
+    // Validate structure
+    if (!data.notes || !Array.isArray(data.notes)) {
+      throw new Error('Invalid export format: notes array missing');
+    }
+    
+    if (!data.folders || !Array.isArray(data.folders)) {
+      throw new Error('Invalid export format: folders array missing');
+    }
+    
+    return data as ExportData;
+  } catch (error) {
+    throw new Error(`Failed to parse export data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
