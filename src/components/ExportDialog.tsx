@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, FileText, FilePdf, Table, Upload } from '@phosphor-icons/react';
+import { Download, FileText, Table, Upload } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Note, Folder } from '@/lib/types';
-import { exportAsJSON, exportAsPDF, exportAsCSV, parseImportData, ExportData } from '@/lib/export';
+import { exportAsJSON, exportAsCSV, parseImportData, ExportData } from '@/lib/export';
 import { toast } from 'sonner';
 
 interface ExportDialogProps {
@@ -36,20 +36,7 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
     }
   };
 
-  const handleExportPDF = () => {
-    try {
-      if (notes.length === 0) {
-        toast.error('No notes to export');
-        return;
-      }
-      exportAsPDF(notes, folders);
-      toast.success(`Exported ${notes.length} notes as PDF`);
-      setIsOpen(false);
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      toast.error('Failed to export notes as PDF: ' + (error as Error).message);
-    }
-  };
+
 
   const handleExportCSV = () => {
     try {
@@ -129,20 +116,6 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
               </Button>
               
               <Button
-                onClick={handleExportPDF}
-                variant="outline"
-                className="w-full justify-start"
-              >
-                <FilePdf className="h-4 w-4 mr-3" />
-                <div className="text-left">
-                  <div className="font-medium">Export as PDF</div>
-                  <div className="text-xs text-muted-foreground">
-                    Printable document format
-                  </div>
-                </div>
-              </Button>
-
-              <Button
                 onClick={handleExportCSV}
                 variant="outline"
                 className="w-full justify-start"
@@ -216,7 +189,7 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
         </div>
 
         <div className="text-xs text-muted-foreground pt-4 border-t">
-          💡 JSON exports can be re-imported. PDF and CSV exports are for viewing and external use only.
+          💡 JSON exports can be re-imported. CSV exports are for viewing and external use only.
         </div>
       </DialogContent>
     </Dialog>
@@ -239,19 +212,7 @@ export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Fol
     }
   };
 
-  const handleExportPDF = () => {
-    try {
-      if (notes.length === 0) {
-        toast.error('No notes to export');
-        return;
-      }
-      exportAsPDF(notes, folders);
-      toast.success(`Exported ${notes.length} notes as PDF`);
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      toast.error('Failed to export notes as PDF: ' + (error as Error).message);
-    }
-  };
+
 
   const handleExportCSV = () => {
     try {
@@ -279,10 +240,6 @@ export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Fol
         <DropdownMenuItem onClick={handleExportJSON}>
           <FileText className="h-4 w-4 mr-2" />
           Export as JSON
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportPDF}>
-          <FilePdf className="h-4 w-4 mr-2" />
-          Export as PDF
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleExportCSV}>
           <Table className="h-4 w-4 mr-2" />
