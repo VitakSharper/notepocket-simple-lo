@@ -1,27 +1,27 @@
 import jsPDF from 'jspdf';
 import { Note, Folder } from './types';
 
-  exportedAt: string;
-}
-/**
+export interface ExportData {
+  notes: Note[];
+  folders: Folder[];
   exportedAt: string;
   version: string;
 }
 
 /**
  * Export notes and folders as JSON
-
-  const link = document.createElement('a');
-  link.download = `notepocket-expo
-  
-}
-/**
  */
+export function exportAsJSON(notes: Note[], folders: Folder[]): void {
+  const exportData: ExportData = {
+    notes,
+    folders,
+    exportedAt: new Date().toISOString(),
+    version: '1.0'
   };
 
-  const maxWidth = pageWidth - (margin * 2);
-
-  con
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: 'application/json'
+  });
 
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -48,56 +48,47 @@ export function exportAsPDF(notes: Note[], folders: Folder[]): void {
     pdf.setFontSize(fontSize);
     const lines = pdf.splitTextToSize(text, maxWidth);
     pdf.text(lines, x, y);
+    return y + (lines.length * fontSize * 0.352777778); // Convert pt to mm
+  };
 
+  // Helper function to check if we need a new page
+  const checkPageBreak = (requiredSpace: number): void => {
+    if (yPosition + requiredSpace > pageHeight - margin) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+  };
+
+  // Header
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('NotePocket Export', margin, yPosition);
+  yPosition += 15;
+
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`Exported on: ${new Date().toLocaleDateString()}`, margin, yPosition);
+  yPosition += 20;
+
+  // Export by folder
+  folders.forEach(folder => {
+    const folderNotes = notes.filter(n => n.folderId === folder.id);
+    if (folderNotes.length === 0) return;
+
+    checkPageBreak(30);
     
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`📁 ${folder.name}`, margin, yPosition);
+    yPosition += 15;
 
-
-      if (note.content && note.type === 'text') {
-        const cleanContent = note.content.replace(/<[^>]*>/
-      } else if (not
-        yPosition = addWr
-     
-    
-
-
-  });
-  // Notes without fol
-  if (unfoldered.length > 0) {
-    
-    pdf.setFont('h
-
-    unfoldered.f
+    folderNotes.forEach(note => {
+      checkPageBreak(50);
       
+      // Note title
       pdf.setFontSize(12);
-      yPosition = addWrappedText(note.title, margin + 5, yPosition, maxWidth - 5,
-      // Note met
-      pdf.setFont('helvetica', 'normal');
-      yPosition =
-      // Note content
-        pdf.setFon
-
-        pdf.setFontSize(9);
-
-        yPosition = addWrappedText(`
-      
-    });
-
-
-/**
-
-  const text = await
-  
-  if (!data.notes || !data.folders ||
-  }
-  return {
-
-    version: data.version || '1.0
-}
-
-
-
-
-
+      pdf.setFont('helvetica', 'bold');
+      yPosition = addWrappedText(note.title, margin + 5, yPosition, maxWidth - 5, 12) + 3;
 
       // Note metadata
       pdf.setFontSize(9);
@@ -166,4 +157,22 @@ export function exportAsPDF(notes: Note[], folders: Folder[]): void {
   }
 
   pdf.save(`notepocket-export-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+/**
+ * Import data from JSON export
+ */
+export function parseImportData(jsonString: string): ExportData {
+  const data = JSON.parse(jsonString);
+  
+  if (!data.notes || !data.folders || !Array.isArray(data.notes) || !Array.isArray(data.folders)) {
+    throw new Error('Invalid export file format');
+  }
+  
+  return {
+    notes: data.notes,
+    folders: data.folders,
+    exportedAt: data.exportedAt || new Date().toISOString(),
+    version: data.version || '1.0'
+  };
 }
