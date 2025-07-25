@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 interface CreateNoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onCreateNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   folders: Folder[];
   selectedFolder: string | null;
 }
@@ -151,7 +151,7 @@ export function CreateNoteModal({
         embeddedImages: noteType === 'text' ? embeddedImages : undefined,
       };
 
-      onCreateNote(newNote);
+      await onCreateNote(newNote);
       toast.success('Note created successfully!');
       resetForm();
       onOpenChange(false);

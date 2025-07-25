@@ -11,8 +11,8 @@ interface NoteDetailModalProps {
   folders: Folder[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateNote: (noteId: string, updates: Partial<Note>) => void;
-  onDeleteNote: (noteId: string) => void;
+  onUpdateNote: (noteId: string, updates: Partial<Note>) => Promise<void>;
+  onDeleteNote: (noteId: string) => Promise<void>;
   onEditNote: () => void;
 }
 
@@ -29,18 +29,26 @@ export function NoteDetailModal({
 
   const folder = folders.find(f => f.id === note.folderId);
 
-  const handleImageSizeChange = (imageId: string, width: number, height: number) => {
+  const handleImageSizeChange = async (imageId: string, width: number, height: number) => {
     if (!note.embeddedImages) return;
     
     const updatedImages = note.embeddedImages.map(img => 
       img.id === imageId ? { ...img, width, height } : img
     );
     
-    onUpdateNote(note.id, { embeddedImages: updatedImages });
+    try {
+      await onUpdateNote(note.id, { embeddedImages: updatedImages });
+    } catch (error) {
+      console.error('Failed to update image size:', error);
+    }
   };
 
-  const toggleFavorite = () => {
-    onUpdateNote(note.id, { isFavorite: !note.isFavorite });
+  const toggleFavorite = async () => {
+    try {
+      await onUpdateNote(note.id, { isFavorite: !note.isFavorite });
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
   };
 
   const getTypeIcon = () => {
@@ -151,10 +159,14 @@ export function NoteDetailModal({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   if (confirm('Are you sure you want to delete this note?')) {
-                    onDeleteNote(note.id);
-                    onOpenChange(false);
+                    try {
+                      await onDeleteNote(note.id);
+                      onOpenChange(false);
+                    } catch (error) {
+                      console.error('Failed to delete note:', error);
+                    }
                   }
                 }}
               >

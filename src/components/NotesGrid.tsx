@@ -6,8 +6,8 @@ interface NotesGridProps {
   notes: Note[];
   viewMode: ViewMode;
   folders: Folder[];
-  onUpdateNote: (noteId: string, updates: Partial<Note>) => void;
-  onDeleteNote: (noteId: string) => void;
+  onUpdateNote: (noteId: string, updates: Partial<Note>) => Promise<void>;
+  onDeleteNote: (noteId: string) => Promise<void>;
 }
 
 export function NotesGrid({

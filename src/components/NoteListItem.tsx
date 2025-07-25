@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 interface NoteListItemProps {
   note: Note;
   folders: Folder[];
-  onUpdateNote: (noteId: string, updates: Partial<Note>) => void;
-  onDeleteNote: (noteId: string) => void;
+  onUpdateNote: (noteId: string, updates: Partial<Note>) => Promise<void>;
+  onDeleteNote: (noteId: string) => Promise<void>;
 }
 
 export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: NoteListItemProps) {
@@ -22,8 +22,12 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
 
   const folder = folders.find(f => f.id === note.folderId);
 
-  const toggleFavorite = () => {
-    onUpdateNote(note.id, { isFavorite: !note.isFavorite });
+  const toggleFavorite = async () => {
+    try {
+      await onUpdateNote(note.id, { isFavorite: !note.isFavorite });
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
   };
 
   const getTypeIcon = () => {
@@ -96,7 +100,13 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="text-destructive"
-                    onClick={() => onDeleteNote(note.id)}
+                    onClick={async () => {
+                      try {
+                        await onDeleteNote(note.id);
+                      } catch (error) {
+                        console.error('Failed to delete note:', error);
+                      }
+                    }}
                   >
                     <Trash className="mr-2 h-4 w-4" />
                     Delete

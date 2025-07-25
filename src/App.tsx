@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useKV } from '@github/spark/hooks';
 import { Note, Folder, SearchFilters, ViewMode, SortOption } from './lib/types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -7,11 +6,23 @@ import { NotesGrid } from './components/NotesGrid';
 import { CreateNoteModal } from './components/CreateNoteModal';
 import { Toaster } from './components/ui/sonner';
 import { searchNotes, filterNotes, sortNotes } from './lib/utils';
+import { useDatabase } from './hooks/useDatabase';
 import { demoNotes, demoFolders } from './lib/demoData';
 
 function App() {
-  const [notes, setNotes] = useKV<Note[]>('notes', []);
-  const [folders, setFolders] = useKV<Folder[]>('folders', []);
+  const {
+    notes,
+    folders,
+    isLoading,
+    error,
+    createNote: dbCreateNote,
+    updateNote: dbUpdateNote,
+    deleteNote: dbDeleteNote,
+    createFolder: dbCreateFolder,
+    deleteFolder: dbDeleteFolder,
+    clearError,
+  } = useDatabase();
+
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -20,13 +31,43 @@ function App() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedNoteType, setSelectedNoteType] = useState<Note['type'] | null>(null);
 
-  // Initialize with demo data on first visit
+  // Initialize with demo data on first visit if database is empty
   useEffect(() => {
-    if ((notes?.length || 0) === 0 && (folders?.length || 0) === 0) {
-      setNotes(demoNotes);
-      setFolders(demoFolders);
-    }
-  }, [notes?.length, folders?.length, setNotes, setFolders]);
+    const initializeDemoData = async () => {
+      if (!isLoading && notes.length === 0 && folders.length === 0) {
+        try {
+          // Create demo folders first
+          for (const folder of demoFolders) {
+            await dbCreateFolder({
+              name: folder.name,
+              color: folder.color,
+            });
+          }
+          
+          // Then create demo notes
+          for (const note of demoNotes) {
+            await dbCreateNote({
+              title: note.title,
+              content: note.content,
+              type: note.type,
+              tags: note.tags,
+              folderId: note.folderId,
+              isFavorite: note.isFavorite,
+              fileUrl: note.fileUrl,
+              fileName: note.fileName,
+              fileSize: note.fileSize,
+              fileMimeType: note.fileMimeType,
+              embeddedImages: note.embeddedImages,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to initialize demo data:', err);
+        }
+      }
+    };
+
+    initializeDemoData();
+  }, [isLoading, notes.length, folders.length, dbCreateNote, dbCreateFolder]);
 
   // Filter and search notes
   const filteredNotes = () => {
@@ -49,60 +90,70 @@ function App() {
     return result;
   };
 
-  const handleCreateNote = (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newNote: Note = {
-      ...note,
-      id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    setNotes(currentNotes => [...(currentNotes || []), newNote]);
-  };
-
-  const handleUpdateNote = (noteId: string, updates: Partial<Note>) => {
-    setNotes(currentNotes => 
-      (currentNotes || []).map(note => 
-        note.id === noteId 
-          ? { ...note, ...updates, updatedAt: new Date() }
-          : note
-      )
-    );
-  };
-
-  const handleDeleteNote = (noteId: string) => {
-    setNotes(currentNotes => (currentNotes || []).filter(note => note.id !== noteId));
-  };
-
-  const handleCreateFolder = (name: string, color: string) => {
-    const newFolder: Folder = {
-      id: `folder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name,
-      color,
-      createdAt: new Date(),
-    };
-    
-    setFolders(currentFolders => [...(currentFolders || []), newFolder]);
-  };
-
-  const handleDeleteFolder = (folderId: string) => {
-    // Remove folder
-    setFolders(currentFolders => (currentFolders || []).filter(folder => folder.id !== folderId));
-    
-    // Remove folder reference from notes
-    setNotes(currentNotes => 
-      (currentNotes || []).map(note => 
-        note.folderId === folderId 
-          ? { ...note, folderId: undefined }
-          : note
-      )
-    );
-    
-    // Clear selection if deleted folder was selected
-    if (selectedFolder === folderId) {
-      setSelectedFolder(null);
+  const handleCreateNote = async (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      await dbCreateNote(note);
+      setCreateModalOpen(false);
+    } catch (err) {
+      console.error('Failed to create note:', err);
     }
   };
+
+  const handleUpdateNote = async (noteId: string, updates: Partial<Note>) => {
+    try {
+      await dbUpdateNote(noteId, updates);
+    } catch (err) {
+      console.error('Failed to update note:', err);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await dbDeleteNote(noteId);
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+    }
+  };
+
+  const handleCreateFolder = async (name: string, color: string) => {
+    try {
+      await dbCreateFolder({ name, color });
+    } catch (err) {
+      console.error('Failed to create folder:', err);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      await dbDeleteFolder(folderId);
+      
+      // Clear selection if deleted folder was selected
+      if (selectedFolder === folderId) {
+        setSelectedFolder(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete folder:', err);
+    }
+  };
+
+  // Clear error when user interacts
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(clearError, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, clearError]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading NotePocket...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background">
@@ -123,7 +174,7 @@ function App() {
             <NotesGrid
               notes={filteredNotes()}
               viewMode={viewMode}
-              folders={folders || []}
+              folders={folders}
               onUpdateNote={handleUpdateNote}
               onDeleteNote={handleDeleteNote}
             />
@@ -134,15 +185,15 @@ function App() {
       {/* Desktop layout */}
       <div className="hidden lg:flex w-full h-full">
         <Sidebar
-          folders={folders || []}
+          folders={folders}
           selectedFolder={selectedFolder}
           onSelectFolder={setSelectedFolder}
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           showFavoritesOnly={showFavoritesOnly}
           onToggleFavorites={setShowFavoritesOnly}
-          noteCount={(notes || []).length}
-          favoriteCount={(notes || []).filter(n => n.isFavorite).length}
+          noteCount={notes.length}
+          favoriteCount={notes.filter(n => n.isFavorite).length}
         />
         
         <div className="flex-1 flex flex-col">
@@ -160,7 +211,7 @@ function App() {
             <NotesGrid
               notes={filteredNotes()}
               viewMode={viewMode}
-              folders={folders || []}
+              folders={folders}
               onUpdateNote={handleUpdateNote}
               onDeleteNote={handleDeleteNote}
             />
@@ -172,11 +223,17 @@ function App() {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onCreateNote={handleCreateNote}
-        folders={folders || []}
+        folders={folders}
         selectedFolder={selectedFolder}
       />
 
       <Toaster />
+      
+      {error && (
+        <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

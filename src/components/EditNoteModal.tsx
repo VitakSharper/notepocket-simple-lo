@@ -15,7 +15,7 @@ interface EditNoteModalProps {
   folders: Folder[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateNote: (noteId: string, updates: Partial<Note>) => void;
+  onUpdateNote: (noteId: string, updates: Partial<Note>) => Promise<void>;
 }
 
 export function EditNoteModal({
@@ -44,23 +44,27 @@ export function EditNoteModal({
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim()) {
       toast.error('Please enter a title for your note.');
       return;
     }
 
-    const updates: Partial<Note> = {
-      title: title.trim(),
-      content: content.trim(),
-      folderId: selectedFolderId === 'none' ? undefined : selectedFolderId,
-      tags,
-      embeddedImages: note.type === 'text' ? embeddedImages : undefined,
-    };
+    try {
+      const updates: Partial<Note> = {
+        title: title.trim(),
+        content: content.trim(),
+        folderId: selectedFolderId === 'none' ? undefined : selectedFolderId,
+        tags,
+        embeddedImages: note.type === 'text' ? embeddedImages : undefined,
+      };
 
-    onUpdateNote(note.id, updates);
-    toast.success('Note updated successfully!');
-    onOpenChange(false);
+      await onUpdateNote(note.id, updates);
+      toast.success('Note updated successfully!');
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to update note. Please try again.');
+    }
   };
 
   // Reset form when note changes or modal opens
