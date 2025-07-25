@@ -7,6 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Note, Folder } from '@/lib/types';
 import { formatDate, formatFileSize, isImageFile } from '@/lib/utils';
 import { EditNoteModal } from './EditNoteModal';
+import { NoteContentRenderer } from './NoteContentRenderer';
+import { NoteDetailModal } from './NoteDetailModal';
 
 interface NoteCardProps {
   note: Note;
@@ -17,6 +19,7 @@ interface NoteCardProps {
 
 export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCardProps) {
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const folder = folders.find(f => f.id === note.folderId);
 
@@ -62,6 +65,19 @@ export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCard
       );
     }
 
+    if (note.type === 'text' && note.content) {
+      // For text notes, use the content renderer to handle embedded images
+      return (
+        <div className="mb-3">
+          <NoteContentRenderer
+            content={note.content}
+            embeddedImages={note.embeddedImages}
+            className="text-sm text-muted-foreground line-clamp-3"
+          />
+        </div>
+      );
+    }
+
     if (note.content) {
       return (
         <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
@@ -75,7 +91,10 @@ export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCard
 
   return (
     <>
-      <Card className="group hover:shadow-md transition-shadow cursor-pointer">
+      <Card 
+        className="group hover:shadow-md transition-shadow cursor-pointer"
+        onClick={() => setShowDetailModal(true)}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -94,7 +113,10 @@ export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCard
                 variant="ghost"
                 size="sm"
                 className="h-7 w-7 p-0"
-                onClick={toggleFavorite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite();
+                }}
               >
                 {note.isFavorite ? (
                   <StarFill className="h-3 w-3 text-accent" />
@@ -105,7 +127,12 @@ export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCard
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -159,6 +186,19 @@ export function NoteCard({ note, folders, onUpdateNote, onDeleteNote }: NoteCard
           )}
         </CardContent>
       </Card>
+
+      <NoteDetailModal
+        note={note}
+        folders={folders}
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        onUpdateNote={onUpdateNote}
+        onDeleteNote={onDeleteNote}
+        onEditNote={() => {
+          setShowDetailModal(false);
+          setShowEditModal(true);
+        }}
+      />
 
       <EditNoteModal
         note={note}

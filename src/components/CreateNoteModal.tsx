@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Note, Folder } from '@/lib/types';
+import { Note, Folder, EmbeddedImage } from '@/lib/types';
 import { validateFileType, fileToBase64, formatFileSize } from '@/lib/utils';
+import { RichTextEditor } from './RichTextEditor';
 import { toast } from 'sonner';
 
 interface CreateNoteModalProps {
@@ -35,6 +36,7 @@ export function CreateNoteModal({
   const [tagInput, setTagInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [embeddedImages, setEmbeddedImages] = useState<EmbeddedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,7 @@ export function CreateNoteModal({
     setTagInput('');
     setFile(null);
     setFilePreview(null);
+    setEmbeddedImages([]);
     setIsUploading(false);
   };
 
@@ -145,6 +148,7 @@ export function CreateNoteModal({
         fileName,
         fileSize,
         fileMimeType,
+        embeddedImages: noteType === 'text' ? embeddedImages : undefined,
       };
 
       onCreateNote(newNote);
@@ -279,14 +283,23 @@ export function CreateNoteModal({
           </div>
 
           {/* Content (for text notes or additional description) */}
-          {noteType === 'text' && (
+          {noteType === 'text' ? (
+            <RichTextEditor
+              content={content}
+              embeddedImages={embeddedImages}
+              onContentChange={setContent}
+              onEmbeddedImagesChange={setEmbeddedImages}
+              placeholder="Write your note content..."
+              rows={6}
+            />
+          ) : (
             <div>
-              <label className="text-sm font-medium">Content</label>
+              <label className="text-sm font-medium">Description (Optional)</label>
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your note content..."
-                rows={6}
+                placeholder="Add a description for this file..."
+                rows={3}
                 className="mt-1"
               />
             </div>

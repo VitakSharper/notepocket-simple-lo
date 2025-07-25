@@ -1,4 +1,4 @@
-import { Note, Folder } from './types';
+import { Note, Folder, EmbeddedImage } from './types';
 
 export const demoFolders: Folder[] = [
   {
@@ -25,13 +25,14 @@ export const demoNotes: Note[] = [
   {
     id: 'note-1',
     title: 'Welcome to NotePocket',
-    content: 'NotePocket is your local-first note-taking app. Start by creating your first note using the "New Note" button above. You can organize your notes with folders, add tags, and mark favorites for quick access.',
+    content: 'NotePocket is your local-first note-taking app. Start by creating your first note using the "New Note" button above. You can organize your notes with folders, add tags, and mark favorites for quick access.\n\nYou can now also **embed images** directly in your text notes! Use the "Add Image" button when editing to include photos, screenshots, or diagrams.',
     type: 'text',
     tags: ['welcome', 'getting-started'],
     folderId: 'folder-personal',
     isFavorite: true,
     createdAt: new Date('2024-01-20'),
     updatedAt: new Date('2024-01-20'),
+    embeddedImages: [],
   },
   {
     id: 'note-2',
@@ -43,6 +44,7 @@ export const demoNotes: Note[] = [
     isFavorite: false,
     createdAt: new Date('2024-01-18'),
     updatedAt: new Date('2024-01-19'),
+    embeddedImages: [],
   },
   {
     id: 'note-3',
@@ -54,6 +56,7 @@ export const demoNotes: Note[] = [
     isFavorite: true,
     createdAt: new Date('2024-01-16'),
     updatedAt: new Date('2024-01-18'),
+    embeddedImages: [],
   },
   {
     id: 'note-4',
@@ -65,6 +68,7 @@ export const demoNotes: Note[] = [
     isFavorite: false,
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-01-17'),
+    embeddedImages: [],
   },
   {
     id: 'note-5',
@@ -76,5 +80,6 @@ export const demoNotes: Note[] = [
     isFavorite: false,
     createdAt: new Date('2024-01-19'),
     updatedAt: new Date('2024-01-19'),
+    embeddedImages: [],
   },
 ];

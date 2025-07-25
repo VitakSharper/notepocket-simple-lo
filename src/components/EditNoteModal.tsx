@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Note, Folder } from '@/lib/types';
+import { Note, Folder, EmbeddedImage } from '@/lib/types';
+import { RichTextEditor } from './RichTextEditor';
 import { toast } from 'sonner';
 
 interface EditNoteModalProps {
@@ -29,6 +30,7 @@ export function EditNoteModal({
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(note.folderId);
   const [tags, setTags] = useState<string[]>(note.tags);
   const [tagInput, setTagInput] = useState('');
+  const [embeddedImages, setEmbeddedImages] = useState<EmbeddedImage[]>(note.embeddedImages || []);
 
   const addTag = () => {
     const tag = tagInput.trim();
@@ -53,6 +55,7 @@ export function EditNoteModal({
       content: content.trim(),
       folderId: selectedFolderId === 'none' ? undefined : selectedFolderId,
       tags,
+      embeddedImages: note.type === 'text' ? embeddedImages : undefined,
     };
 
     onUpdateNote(note.id, updates);
@@ -68,6 +71,7 @@ export function EditNoteModal({
       setSelectedFolderId(note.folderId);
       setTags(note.tags);
       setTagInput('');
+      setEmbeddedImages(note.embeddedImages || []);
     }  
   }, [note, open]);
 
@@ -137,17 +141,28 @@ export function EditNoteModal({
             <label className="text-sm font-medium">
               {note.type === 'text' ? 'Content' : 'Description (Optional)'}
             </label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={
-                note.type === 'text' 
-                  ? "Write your note content..." 
-                  : "Add a description for this file..."
-              }
-              rows={6}
-              className="mt-1"
-            />
+            {note.type === 'text' ? (
+              <RichTextEditor
+                content={content}
+                embeddedImages={embeddedImages}
+                onContentChange={setContent}
+                onEmbeddedImagesChange={setEmbeddedImages}
+                placeholder="Write your note content..."
+                rows={6}
+              />
+            ) : (
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={
+                  note.type === 'text' 
+                    ? "Write your note content..." 
+                    : "Add a description for this file..."
+                }
+                rows={6}
+                className="mt-1"
+              />
+            )}
           </div>
 
           {/* Folder Selection */}

@@ -12,6 +12,15 @@ export interface Note {
   fileName?: string;
   fileSize?: number;
   fileMimeType?: string;
+  embeddedImages?: EmbeddedImage[];
+}
+
+export interface EmbeddedImage {
+  id: string;
+  url: string;
+  alt: string;
+  fileName: string;
+  fileSize: number;
 }
 
 export interface Folder {

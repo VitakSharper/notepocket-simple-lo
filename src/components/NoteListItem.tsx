@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Note, Folder } from '@/lib/types';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import { EditNoteModal } from './EditNoteModal';
+import { NoteDetailModal } from './NoteDetailModal';
 import { cn } from '@/lib/utils';
 
 interface NoteListItemProps {
@@ -17,6 +18,7 @@ interface NoteListItemProps {
 
 export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: NoteListItemProps) {
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const folder = folders.find(f => f.id === note.folderId);
 
@@ -44,7 +46,10 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
 
   return (
     <>
-      <div className="group flex items-center gap-4 p-4 border border-border rounded-lg hover:shadow-sm transition-shadow bg-card">
+      <div 
+        className="group flex items-center gap-4 p-4 border border-border rounded-lg hover:shadow-sm transition-shadow bg-card cursor-pointer"
+        onClick={() => setShowDetailModal(true)}
+      >
         {/* Type Icon */}
         <div className="flex-shrink-0">
           {getTypeIcon()}
@@ -61,7 +66,10 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
                 variant="ghost"
                 size="sm"
                 className="h-7 w-7 p-0"
-                onClick={toggleFavorite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite();
+                }}
               >
                 {note.isFavorite ? (
                   <StarFill className="h-3 w-3 text-accent" />
@@ -72,7 +80,12 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -132,6 +145,19 @@ export function NoteListItem({ note, folders, onUpdateNote, onDeleteNote }: Note
           </div>
         </div>
       </div>
+
+      <NoteDetailModal
+        note={note}
+        folders={folders}
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        onUpdateNote={onUpdateNote}
+        onDeleteNote={onDeleteNote}
+        onEditNote={() => {
+          setShowDetailModal(false);
+          setShowEditModal(true);
+        }}
+      />
 
       <EditNoteModal
         note={note}
