@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Note, Folder } from '../lib/types';
 import { db } from '../lib/database';
-import { MigrationService } from '../lib/migration';
 import { toast } from 'sonner';
 
 /**
@@ -19,16 +18,6 @@ export function useDatabase() {
     const initializeDatabase = async () => {
       try {
         await db.init();
-        
-        // Check for and run migration if needed
-        const migrationNeeded = await MigrationService.checkMigrationNeeded();
-        if (migrationNeeded) {
-          const result = await MigrationService.migrateFromKV();
-          if (result.success && (result.notesCount > 0 || result.foldersCount > 0)) {
-            toast.success(`Migrated ${result.notesCount} notes and ${result.foldersCount} folders to new database!`);
-          }
-        }
-        
         await loadData();
       } catch (err) {
         setError('Failed to initialize database');
