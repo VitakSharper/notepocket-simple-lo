@@ -1,0 +1,80 @@
+import { Note, Folder } from './types';
+
+export const demoFolders: Folder[] = [
+  {
+    id: 'folder-personal',
+    name: 'Personal',
+    color: '#3b82f6',
+    createdAt: new Date('2024-01-15'),
+  },
+  {
+    id: 'folder-work',
+    name: 'Work',
+    color: '#ef4444',
+    createdAt: new Date('2024-01-16'),
+  },
+  {
+    id: 'folder-ideas',
+    name: 'Ideas',
+    color: '#22c55e',
+    createdAt: new Date('2024-01-17'),
+  },
+];
+
+export const demoNotes: Note[] = [
+  {
+    id: 'note-1',
+    title: 'Welcome to NotePocket',
+    content: 'NotePocket is your local-first note-taking app. Start by creating your first note using the "New Note" button above. You can organize your notes with folders, add tags, and mark favorites for quick access.',
+    type: 'text',
+    tags: ['welcome', 'getting-started'],
+    folderId: 'folder-personal',
+    isFavorite: true,
+    createdAt: new Date('2024-01-20'),
+    updatedAt: new Date('2024-01-20'),
+  },
+  {
+    id: 'note-2',
+    title: 'Meeting Notes - Q1 Planning',
+    content: 'Key discussion points:\n- Budget allocation for new projects\n- Timeline for product launch\n- Team expansion plans\n- Marketing strategy alignment\n\nAction items:\n- Schedule follow-up with finance team\n- Prepare detailed project proposals\n- Review current resource allocation',
+    type: 'text',
+    tags: ['meeting', 'planning', 'q1'],
+    folderId: 'folder-work',
+    isFavorite: false,
+    createdAt: new Date('2024-01-18'),
+    updatedAt: new Date('2024-01-19'),
+  },
+  {
+    id: 'note-3',
+    title: 'Recipe Ideas',
+    content: 'New recipes to try:\n\n1. Mediterranean Quinoa Bowl\n   - Quinoa, cucumber, tomatoes, feta, olives\n   - Lemon vinaigrette dressing\n\n2. Thai Green Curry\n   - Coconut milk, green curry paste, vegetables\n   - Serve with jasmine rice\n\n3. Chocolate Chip Cookies\n   - Use brown butter for extra flavor\n   - Add sea salt on top',
+    type: 'text',
+    tags: ['recipes', 'cooking', 'food'],
+    folderId: 'folder-personal',
+    isFavorite: true,
+    createdAt: new Date('2024-01-16'),
+    updatedAt: new Date('2024-01-18'),
+  },
+  {
+    id: 'note-4',
+    title: 'App Feature Ideas',
+    content: 'Brainstorming new features for the mobile app:\n\n• Voice note integration\n• OCR for scanned documents\n• Better search with filters\n• Collaboration features\n• Export to various formats\n• Offline sync improvements\n• Dark mode theme\n• Widget for quick notes\n\nPriority: Focus on voice notes and better search first.',
+    type: 'text',
+    tags: ['brainstorming', 'features', 'mobile'],
+    folderId: 'folder-ideas',
+    isFavorite: false,
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-17'),
+  },
+  {
+    id: 'note-5',
+    title: 'Quick Shopping List',
+    content: '• Milk\n• Bread\n• Eggs\n• Bananas\n• Greek yogurt\n• Spinach\n• Chicken breast\n• Rice\n• Olive oil\n• Onions\n\nDon\'t forget to check for discounts on organic produce!',
+    type: 'text',
+    tags: ['shopping', 'groceries'],
+    folderId: 'folder-personal',
+    isFavorite: false,
+    createdAt: new Date('2024-01-19'),
+    updatedAt: new Date('2024-01-19'),
+  },
+];
