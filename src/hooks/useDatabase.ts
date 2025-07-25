@@ -222,6 +222,48 @@ export function useDatabase() {
     setError(null);
   }, []);
 
+  // Import data from backup
+  const importData = useCallback(async (importedNotes: Note[], importedFolders: Folder[]) => {
+    try {
+      // Import folders first to ensure they exist for notes
+      const folderIdMap = new Map<string, string>();
+      for (const folder of importedFolders) {
+        // Check if folder already exists by name
+        const existingFolder = folders.find(f => f.name === folder.name);
+        if (!existingFolder) {
+          const newFolder = await db.createFolder({
+            name: folder.name,
+            color: folder.color,
+          });
+          folderIdMap.set(folder.id, newFolder.id);
+          setFolders(prev => [...prev, newFolder]);
+        } else {
+          folderIdMap.set(folder.id, existingFolder.id);
+        }
+      }
+
+      // Import notes
+      const newNotes: Note[] = [];
+      for (const note of importedNotes) {
+        const noteData = {
+          ...note,
+          folderId: note.folderId && folderIdMap.has(note.folderId) 
+            ? folderIdMap.get(note.folderId)
+            : note.folderId,
+        };
+        
+        const newNote = await db.createNote(noteData);
+        newNotes.push(newNote);
+      }
+      
+      setNotes(prev => [...prev, ...newNotes]);
+      return { notesCount: newNotes.length, foldersCount: importedFolders.length };
+    } catch (err) {
+      setError('Failed to import data');
+      throw err;
+    }
+  }, [folders]);
+
   return {
     // State
     notes,
@@ -254,5 +296,6 @@ export function useDatabase() {
     getDatabaseSize,
     refreshData,
     clearError,
+    importData,
   };
 }

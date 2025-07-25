@@ -8,6 +8,7 @@ import { Toaster } from './components/ui/sonner';
 import { searchNotes, filterNotes, sortNotes } from './lib/utils';
 import { useDatabase } from './hooks/useDatabase';
 import { demoNotes, demoFolders } from './lib/demoData';
+import { ExportData } from './lib/export';
 
 function App() {
   const {
@@ -21,6 +22,7 @@ function App() {
     createFolder: dbCreateFolder,
     deleteFolder: dbDeleteFolder,
     clearError,
+    importData,
   } = useDatabase();
 
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -136,6 +138,16 @@ function App() {
     }
   };
 
+  const handleImportData = async (data: ExportData) => {
+    try {
+      const result = await importData(data.notes, data.folders);
+      return result;
+    } catch (err) {
+      console.error('Failed to import data:', err);
+      throw err;
+    }
+  };
+
   // Clear error when user interacts
   useEffect(() => {
     if (error) {
@@ -168,6 +180,8 @@ function App() {
             sortBy={sortBy}
             onSortChange={setSortBy}
             onCreateNote={() => setCreateModalOpen(true)}
+            notes={notes}
+            folders={folders}
           />
           
           <main className="flex-1 overflow-auto p-4">
@@ -194,6 +208,9 @@ function App() {
           onToggleFavorites={setShowFavoritesOnly}
           noteCount={notes.length}
           favoriteCount={notes.filter(n => n.isFavorite).length}
+          notes={notes}
+          onImport={handleImportData}
+        />
         />
         
         <div className="flex-1 flex flex-col">
@@ -205,6 +222,8 @@ function App() {
             sortBy={sortBy}
             onSortChange={setSortBy}
             onCreateNote={() => setCreateModalOpen(true)}
+            notes={notes}
+            folders={folders}
           />
           
           <main className="flex-1 overflow-auto p-6">

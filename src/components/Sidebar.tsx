@@ -5,8 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Folder } from '@/lib/types';
+import { Separator } from '@/components/ui/separator';
+import { Folder, Note } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ExportDialog } from './ExportDialog';
+import { ExportData } from '@/lib/export';
 
 interface SidebarProps {
   folders: Folder[];
@@ -18,6 +21,8 @@ interface SidebarProps {
   onToggleFavorites: (show: boolean) => void;
   noteCount: number;
   favoriteCount: number;
+  notes: Note[];
+  onImport?: (data: ExportData) => Promise<void>;
 }
 
 const FOLDER_COLORS = [
@@ -35,6 +40,8 @@ export function Sidebar({
   onToggleFavorites,
   noteCount,
   favoriteCount,
+  notes,
+  onImport,
 }: SidebarProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -90,6 +97,16 @@ export function Sidebar({
             {favoriteCount}
           </Badge>
         </Button>
+
+        {/* Export & Import */}
+        <div className="pt-4">
+          <Separator className="mb-4" />
+          <ExportDialog 
+            notes={notes} 
+            folders={folders} 
+            onImport={onImport}
+          />
+        </div>
 
         {/* Folders Section */}
         <div className="pt-4">

@@ -51,7 +51,14 @@
 - Favorites for quick access
 - Search across all note types including embedded content
 
-### 6. User Interface Improvements
+### 6. Data Export & Backup
+- **NEW**: Complete data export as JSON backup files
+- **NEW**: PDF export for printable note collections
+- **NEW**: Organized PDF output with folder structure
+- **NEW**: Import functionality from JSON backups
+- **NEW**: Data migration and backup preservation
+
+### 7. User Interface Improvements
 - **NEW**: Rich text editor component
 - **NEW**: Note detail modal for expanded viewing
 - **NEW**: Image management interface
@@ -95,9 +102,15 @@
 - NoteContentRenderer: Renders notes with embedded images
 - NoteDetailModal: Full note viewing experience
 - Enhanced CreateNoteModal and EditNoteModal
+- **NEW**: ExportDialog: Comprehensive backup and restore interface
+- **NEW**: Export utilities for JSON and PDF generation
 
 ### Key Functionality
 - Image upload and base64 conversion
+- **NEW**: JSON export with complete note and folder data
+- **NEW**: PDF generation with formatted note content
+- **NEW**: Import validation and data restoration
+- **NEW**: Backup file handling and user feedback
 - Markdown-style image references (![alt](embedded:id))
 - Dynamic content rendering with embedded images
 - Image removal and content cleanup

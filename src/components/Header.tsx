@@ -2,7 +2,8 @@ import { Plus, MagnifyingGlass, SquaresFour, List, SortAscending } from '@phosph
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ViewMode, SortOption } from '@/lib/types';
+import { ViewMode, SortOption, Note, Folder } from '@/lib/types';
+import { ExportDropdown } from './ExportDialog';
 
 interface HeaderProps {
   searchQuery: string;
@@ -12,6 +13,8 @@ interface HeaderProps {
   sortBy: SortOption;
   onSortChange: (sort: SortOption) => void;
   onCreateNote: () => void;
+  notes: Note[];
+  folders: Folder[];
 }
 
 export function Header({
@@ -22,6 +25,8 @@ export function Header({
   sortBy,
   onSortChange,
   onCreateNote,
+  notes,
+  folders,
 }: HeaderProps) {
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -41,6 +46,9 @@ export function Header({
 
         {/* Controls */}
         <div className="flex items-center gap-2">
+          {/* Export */}
+          <ExportDropdown notes={notes} folders={folders} />
+
           {/* Sort - Hidden on mobile */}
           <div className="hidden md:block">
             <DropdownMenu>
