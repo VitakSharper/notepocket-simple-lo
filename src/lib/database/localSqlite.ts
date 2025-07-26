@@ -1,5 +1,39 @@
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
+// Dynamic import for SQL.js to avoid module resolution issues
+let initSqlJs: any;
+
+async function loadSqlJs() {
+  if (!initSqlJs) {
+    try {
+      // Try different import methods for SQL.js
+      const sqlModule = await import('sql.js');
+      initSqlJs = sqlModule.default || sqlModule;
+    } catch (error) {
+      console.error('Failed to load SQL.js module:', error);
+      throw new Error('SQL.js is not available. Using fallback database.');
+    }
+  }
+  return initSqlJs;
+}
+
 import { Note, Folder } from '../types';
+
+interface Database {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => Statement;
+  export: () => Uint8Array;
+  close: () => void;
+}
+
+interface Statement {
+  run: (params?: any[]) => void;
+  step: () => boolean;
+  getAsObject: (params?: any[]) => any;
+  free: () => void;
+}
+
+interface SqlJsStatic {
+  Database: new (data?: Uint8Array) => Database;
+}
 
 // SQLite WASM module singleton
 let SQL: SqlJsStatic | null = null;
@@ -9,15 +43,18 @@ let fileHandle: FileSystemFileHandle | null = null;
 // Initialize SQLite WASM module
 async function initSQL(): Promise<SqlJsStatic> {
   if (!SQL) {
-    SQL = await initSqlJs({
-      // Use WASM files from public directory
-      locateFile: (file: string) => {
-        if (file.endsWith('.wasm')) {
+    try {
+      const sqlJsInit = await loadSqlJs();
+      SQL = await sqlJsInit({
+        // Use WASM files from public directory
+        locateFile: (file: string) => {
           return `/${file}`;
         }
-        return file;
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Failed to initialize SQL.js:', error);
+      throw new Error('Failed to load SQLite WebAssembly module. Please make sure your browser supports WebAssembly.');
+    }
   }
   return SQL;
 }
@@ -158,7 +195,7 @@ export async function initializeDatabase(): Promise<void> {
         }]
       });
 
-      db = createNewDatabase();
+      db = await createNewDatabase();
       await saveDatabase();
       
       // Initialize demo data for new database

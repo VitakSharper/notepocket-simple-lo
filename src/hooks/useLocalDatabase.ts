@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Note, Folder } from '../lib/types';
+
+// Import database adapter
 import {
   initializeDatabase,
   createNote as createNoteDB,
@@ -11,8 +13,9 @@ import {
   deleteFolder as deleteFolderDB,
   getAllFolders,
   closeDatabase,
-  forceSaveDatabase
-} from '../lib/database/localSqlite';
+  forceSaveDatabase,
+  getDatabaseStatus
+} from '../lib/database/adapter';
 
 interface DatabaseState {
   notes: Note[];
@@ -20,6 +23,7 @@ interface DatabaseState {
   isLoading: boolean;
   error: string | null;
   isInitialized: boolean;
+  databaseStatus?: { usingSqlite: boolean; initialized: boolean };
 }
 
 export function useLocalDatabase() {
@@ -28,7 +32,8 @@ export function useLocalDatabase() {
     folders: [],
     isLoading: true,
     error: null,
-    isInitialized: false
+    isInitialized: false,
+    databaseStatus: undefined
   });
 
   // Initialize database
@@ -41,13 +46,15 @@ export function useLocalDatabase() {
       // Load initial data
       const notes = getAllNotes();
       const folders = getAllFolders();
+      const databaseStatus = getDatabaseStatus();
       
       setState({
         notes,
         folders,
         isLoading: false,
         error: null,
-        isInitialized: true
+        isInitialized: true,
+        databaseStatus
       });
     } catch (error: any) {
       console.error('Failed to initialize database:', error);
@@ -55,7 +62,8 @@ export function useLocalDatabase() {
         ...prev,
         isLoading: false,
         error: error.message || 'Failed to initialize database',
-        isInitialized: false
+        isInitialized: false,
+        databaseStatus: undefined
       }));
     }
   }, []);
@@ -260,15 +268,15 @@ export function useLocalDatabase() {
     }
   }, []);
 
-  // Initialize on mount
+  // Initialize on mount only if requested
   useEffect(() => {
-    initialize();
-
+    // Don't auto-initialize, let the app control when to initialize
+    
     // Cleanup on unmount
     return () => {
       closeDatabase();
     };
-  }, [initialize]);
+  }, []);
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -302,6 +310,7 @@ export function useLocalDatabase() {
     importData,
     saveDatabase,
     refreshData,
-    initialize
+    initialize,
+    databaseStatus: state.databaseStatus
   };
 }

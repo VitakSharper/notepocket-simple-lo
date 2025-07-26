@@ -9,6 +9,7 @@ import { NotesGrid } from './components/NotesGrid';
 import { CreateNoteModal } from './components/CreateNoteModal';
 import { DatabaseInitDialog } from './components/DatabaseInitDialog';
 import { DatabaseLoading } from './components/DatabaseLoading';
+import { DatabaseStatus } from './components/DatabaseStatus';
 import { searchNotes, filterNotes, sortNotes } from './lib/utils';
 import { useLocalDatabase } from './hooks/useLocalDatabase';
 import { ExportData } from './lib/export';
@@ -28,6 +29,7 @@ function App() {
     clearError,
     importData,
     initialize,
+    databaseStatus,
   } = useLocalDatabase();
 
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -40,17 +42,12 @@ function App() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  // Initialize with demo data on first visit if database is empty
+  // Auto-initialize on mount
   useEffect(() => {
-    const initializeDatabase = async () => {
-      // Demo data initialization is handled by the database layer
-      // No need to reload the page
-    };
-
-    if (isInitialized && notes.length === 0 && folders.length === 0) {
-      initializeDatabase();
+    if (!isInitialized && !isLoading) {
+      initialize();
     }
-  }, [isInitialized, notes.length, folders.length]);
+  }, [initialize, isInitialized, isLoading]);
 
   // Filter and search notes
   const filteredNotes = () => {
@@ -161,8 +158,10 @@ function App() {
     }
   }, [error, clearError]);
 
-  // Show database initialization dialog if not initialized
-  if (!isInitialized) {
+  // Show database initialization dialog only for SQLite initialization attempts
+  if (!isInitialized && databaseStatus?.usingSqlite === false) {
+    // Using fallback, skip dialog
+  } else if (!isInitialized) {
     return (
       <ThemeProvider theme={muiTheme}>
         <CssBaseline />
@@ -279,6 +278,8 @@ function App() {
             {snackbarMessage || error}
           </Alert>
         </Snackbar>
+
+        <DatabaseStatus status={databaseStatus} />
       </Box>
     </ThemeProvider>
   );
