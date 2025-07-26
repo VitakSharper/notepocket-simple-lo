@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, CircularProgress, Typography, Snackbar, Alert } from '@mui/material';
+import { CssBaseline, Box, Snackbar, Alert } from '@mui/material';
 import { muiTheme } from './theme/muiTheme';
-import { Note, Folder, SearchFilters, ViewMode, SortOption } from './lib/types';
+import { Note, Folder, ViewMode, SortOption } from './lib/types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { NotesGrid } from './components/NotesGrid';
 import { CreateNoteModal } from './components/CreateNoteModal';
+import { DatabaseInitDialog } from './components/DatabaseInitDialog';
+import { DatabaseLoading } from './components/DatabaseLoading';
 import { searchNotes, filterNotes, sortNotes } from './lib/utils';
-import { useDatabase } from './hooks/useDatabase';
-import { initializeDemoData } from './lib/database/init';
+import { useLocalDatabase } from './hooks/useLocalDatabase';
 import { ExportData } from './lib/export';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
     folders,
     isLoading,
     error,
+    isInitialized,
     createNote,
     updateNote,
     deleteNote,
@@ -25,7 +27,8 @@ function App() {
     deleteFolder,
     clearError,
     importData,
-  } = useDatabase();
+    initialize,
+  } = useLocalDatabase();
 
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,19 +43,14 @@ function App() {
   // Initialize with demo data on first visit if database is empty
   useEffect(() => {
     const initializeDatabase = async () => {
-      if (!isLoading && notes.length === 0 && folders.length === 0) {
-        try {
-          await initializeDemoData();
-          // Refresh data after demo initialization
-          window.location.reload();
-        } catch (err) {
-          console.error('Failed to initialize demo data:', err);
-        }
-      }
+      // Demo data initialization is handled by the database layer
+      // No need to reload the page
     };
 
-    initializeDatabase();
-  }, [isLoading, notes.length, folders.length]);
+    if (isInitialized && notes.length === 0 && folders.length === 0) {
+      initializeDatabase();
+    }
+  }, [isInitialized, notes.length, folders.length]);
 
   // Filter and search notes
   const filteredNotes = () => {
@@ -163,24 +161,26 @@ function App() {
     }
   }, [error, clearError]);
 
+  // Show database initialization dialog if not initialized
+  if (!isInitialized) {
+    return (
+      <ThemeProvider theme={muiTheme}>
+        <CssBaseline />
+        <DatabaseInitDialog
+          open={true}
+          onInitialize={initialize}
+          isLoading={isLoading}
+          error={error}
+        />
+      </ThemeProvider>
+    );
+  }
+
   if (isLoading) {
     return (
       <ThemeProvider theme={muiTheme}>
         <CssBaseline />
-        <Box 
-          display="flex" 
-          height="100vh" 
-          alignItems="center" 
-          justifyContent="center" 
-          bgcolor="background.default"
-        >
-          <Box textAlign="center">
-            <CircularProgress sx={{ mb: 2 }} />
-            <Typography variant="body1" color="text.secondary">
-              Loading NotePocket...
-            </Typography>
-          </Box>
-        </Box>
+        <DatabaseLoading />
       </ThemeProvider>
     );
   }

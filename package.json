@@ -4,9 +4,10 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
+        "dev": "npm run copy-wasm && vite",
+        "copy-wasm": "cp node_modules/sql.js/dist/sql-wasm.wasm public/ && cp node_modules/sql.js/dist/sql-wasm.js public/",
         "kill": "fuser -k 5000/tcp",
-        "build": "tsc -b --noCheck && vite build",
+        "build": "npm run copy-wasm && tsc -b --noCheck && vite build",
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
