@@ -34,13 +34,13 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  const handleExportJSON = () => {
+  const handleExportJSON = async () => {
     try {
       if (notes.length === 0) {
         alert('No notes to export');
         return;
       }
-      exportAsJSON(notes, folders);
+      await exportAsJSON(notes, folders);
       alert(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
       setIsOpen(false);
     } catch (error) {
@@ -49,13 +49,13 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     try {
       if (notes.length === 0) {
         alert('No notes to export');
         return;
       }
-      exportAsCSV(notes, folders);
+      await exportAsCSV(notes, folders);
       alert(`Exported ${notes.length} notes as CSV`);
       setIsOpen(false);
     } catch (error) {
@@ -65,12 +65,24 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
   };
 
   const handleImport = async () => {
-    if (!importFile || !onImport) return;
+    if (!onImport) return;
 
     setIsImporting(true);
     try {
-      const fileContent = await importFile.text();
-      const data = parseImportData(fileContent);
+      // Check if we're in Electron and no file is selected (use native dialog)
+      const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+      let data: ExportData;
+      
+      if (isElectron && !importFile) {
+        // Use Electron's native file dialog
+        data = await parseImportData();
+      } else if (importFile) {
+        // Use browser file reading
+        data = await parseImportData(importFile);
+      } else {
+        throw new Error('No file selected');
+      }
+      
       await onImport(data);
       alert(`Successfully imported ${data.notes.length} notes and ${data.folders.length} folders`);
       setIsOpen(false);
@@ -132,35 +144,46 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
           
           <Divider sx={{ my: 2 }} />
           
-          <Box sx={{ mb: 2 }}>
-            <input
-              type="file"
-              accept=".json"
-              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-              style={{ display: 'none' }}
-              id="import-file-input"
-            />
-            <label htmlFor="import-file-input">
-              <Button
-                component="span"
-                variant="outlined"
-                startIcon={<UploadIcon />}
-                fullWidth
-              >
-                Select JSON File
-              </Button>
-            </label>
-          </Box>
+          {/* Show different UI for Electron vs Browser */}
+          {typeof window !== 'undefined' && window.electronAPI?.isElectron ? (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Click Import to select a JSON file using the native file dialog.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ mb: 2 }}>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  style={{ display: 'none' }}
+                  id="import-file-input"
+                />
+                <label htmlFor="import-file-input">
+                  <Button
+                    component="span"
+                    variant="outlined"
+                    startIcon={<UploadIcon />}
+                    fullWidth
+                  >
+                    Select JSON File
+                  </Button>
+                </label>
+              </Box>
 
-          {importFile && (
-            <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-              <Typography variant="body2" fontWeight="medium">
-                Selected file: {importFile.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Size: {(importFile.size / 1024).toFixed(1)} KB
-              </Typography>
-            </Paper>
+              {importFile && (
+                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" fontWeight="medium">
+                    Selected file: {importFile.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Size: {(importFile.size / 1024).toFixed(1)} KB
+                  </Typography>
+                </Paper>
+              )}
+            </>
           )}
         </DialogContent>
         <DialogActions>
@@ -170,7 +193,7 @@ export function ExportDialog({ notes, folders, onImport }: ExportDialogProps) {
           <Button
             onClick={handleImport}
             variant="contained"
-            disabled={!importFile || isImporting}
+            disabled={(!importFile && !(typeof window !== 'undefined' && window.electronAPI?.isElectron)) || isImporting}
           >
             {isImporting ? 'Importing...' : 'Import'}
           </Button>
@@ -192,13 +215,13 @@ export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Fol
     setMenuAnchor(null);
   };
 
-  const handleExportJSON = () => {
+  const handleExportJSON = async () => {
     try {
       if (notes.length === 0) {
         alert('No notes to export');
         return;
       }
-      exportAsJSON(notes, folders);
+      await exportAsJSON(notes, folders);
       alert(`Exported ${notes.length} notes and ${folders.length} folders as JSON`);
     } catch (error) {
       console.error('JSON export failed:', error);
@@ -207,13 +230,13 @@ export function ExportDropdown({ notes, folders }: { notes: Note[]; folders: Fol
     handleMenuClose();
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     try {
       if (notes.length === 0) {
         alert('No notes to export');
         return;
       }
-      exportAsCSV(notes, folders);
+      await exportAsCSV(notes, folders);
       alert(`Exported ${notes.length} notes as CSV`);
     } catch (error) {
       console.error('CSV export failed:', error);
