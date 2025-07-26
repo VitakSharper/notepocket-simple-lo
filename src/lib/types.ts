@@ -6,12 +6,12 @@ export interface Note {
   tags: string[];
   folderId?: string;
   isFavorite: boolean;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  fileUrl?: string;
+  createdAt: Date | string | number;
+  updatedAt: Date | string | number;
+  imageUrl?: string;
   fileName?: string;
   fileSize?: number;
-  fileMimeType?: string;
+  fileType?: string;
   embeddedImages?: EmbeddedImage[];
 }
 
@@ -29,7 +29,7 @@ export interface Folder {
   id: string;
   name: string;
   color: string;
-  createdAt: Date | string;
+  createdAt: Date | string | number;
 }
 
 export interface SearchFilters {

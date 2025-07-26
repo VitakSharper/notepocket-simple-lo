@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Note, Folder } from '../types';
+import { Note, Folder } from '../lib/types';
 import {
   initializeDatabase,
   createNote as createNoteDB,
@@ -12,7 +12,7 @@ import {
   getAllFolders,
   closeDatabase,
   forceSaveDatabase
-} from '../database/localSqlite';
+} from '../lib/database/localSqlite';
 
 interface DatabaseState {
   notes: Note[];
