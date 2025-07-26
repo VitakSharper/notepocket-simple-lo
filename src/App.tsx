@@ -28,6 +28,7 @@ function App() {
     deleteFolder,
     clearError,
     importData,
+    upgradeToFileStorage,
     initialize,
     databaseStatus,
   } = useLocalDatabase();
@@ -42,12 +43,41 @@ function App() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  // Auto-initialize on mount
+  // Auto-initialize on mount with timeout
   useEffect(() => {
     if (!isInitialized && !isLoading) {
-      initialize();
+      const initWithTimeout = async () => {
+        try {
+          // Add timeout to prevent infinite waiting
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Initialization timeout')), 20000);
+          });
+
+          await Promise.race([initialize(), timeoutPromise]);
+        } catch (error) {
+          console.error('Initialization failed or timed out:', error);
+          // The error will be handled by the useLocalDatabase hook
+        }
+      };
+
+      initWithTimeout();
     }
   }, [initialize, isInitialized, isLoading]);
+
+  // Add loading timeout to prevent infinite loading
+  useEffect(() => {
+    if (isLoading) {
+      const loadingTimeout = setTimeout(() => {
+        if (isLoading) {
+          console.warn('Loading timed out, there may be an issue with initialization');
+          setSnackbarMessage('Loading is taking longer than expected. Please refresh the page.');
+          setSnackbarOpen(true);
+        }
+      }, 25000); // 25 second timeout
+
+      return () => clearTimeout(loadingTimeout);
+    }
+  }, [isLoading]);
 
   // Filter and search notes
   const filteredNotes = () => {
@@ -150,6 +180,18 @@ function App() {
     }
   };
 
+  const handleUpgradeToFileStorage = async () => {
+    try {
+      await upgradeToFileStorage();
+      setSnackbarMessage('Successfully upgraded to file storage!');
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Failed to upgrade to file storage:', err);
+      setSnackbarMessage('Failed to upgrade to file storage');
+      setSnackbarOpen(true);
+    }
+  };
+
   // Clear error when user interacts
   useEffect(() => {
     if (error) {
@@ -159,21 +201,7 @@ function App() {
   }, [error, clearError]);
 
   // Show database initialization dialog only for SQLite initialization attempts
-  if (!isInitialized && databaseStatus?.usingSqlite === false) {
-    // Using fallback, skip dialog
-  } else if (!isInitialized) {
-    return (
-      <ThemeProvider theme={muiTheme}>
-        <CssBaseline />
-        <DatabaseInitDialog
-          open={true}
-          onInitialize={initialize}
-          isLoading={isLoading}
-          error={error}
-        />
-      </ThemeProvider>
-    );
-  }
+  // With the simplified adapter, we start with memory so no dialog needed
 
   if (isLoading) {
     return (
@@ -229,6 +257,8 @@ function App() {
             favoriteCount={notes.filter(n => n.isFavorite).length}
             notes={notes}
             onImport={handleImportData}
+            onUpgradeToFileStorage={handleUpgradeToFileStorage}
+            databaseStatus={databaseStatus}
           />
           
           <Box flex={1} display="flex" flexDirection="column">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,7 +15,9 @@ import {
   Storage as StorageIcon,
   FolderOpen as FolderOpenIcon,
   CreateNewFolder as CreateNewFolderIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  Memory as MemoryIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 
 interface DatabaseInitDialogProps {
@@ -31,14 +33,46 @@ export function DatabaseInitDialog({
   isLoading,
   error
 }: DatabaseInitDialogProps) {
+  const [showFallbackOption, setShowFallbackOption] = useState(false);
+  const [timeoutReached, setTimeoutReached] = useState(false);
   const isFileSystemSupported = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+
+  // Show fallback option after 15 seconds of loading
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setTimeoutReached(true);
+        setShowFallbackOption(true);
+      }, 15000);
+
+      return () => clearTimeout(timer);
+    } else {
+      setTimeoutReached(false);
+      setShowFallbackOption(false);
+    }
+  }, [isLoading]);
+
+  // Show fallback option immediately if there's an error
+  useEffect(() => {
+    if (error) {
+      setShowFallbackOption(true);
+    }
+  }, [error]);
 
   const handleInitialize = async () => {
     try {
+      setShowFallbackOption(false);
+      setTimeoutReached(false);
       await onInitialize();
     } catch (err) {
       console.error('Failed to initialize:', err);
+      setShowFallbackOption(true);
     }
+  };
+
+  const handleFallbackMode = () => {
+    // Force fallback by triggering an error
+    window.location.reload();
   };
 
   return (
@@ -87,6 +121,15 @@ export function DatabaseInitDialog({
           </Alert>
         )}
 
+        {timeoutReached && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              <strong>Taking longer than expected...</strong><br />
+              This may be due to browser security settings or WASM loading issues.
+            </Typography>
+          </Alert>
+        )}
+
         <Box 
           sx={{ 
             border: '1px solid',
@@ -129,16 +172,46 @@ export function DatabaseInitDialog({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button
-          onClick={handleInitialize}
-          variant="contained"
-          disabled={isLoading || !isFileSystemSupported}
-          startIcon={isLoading ? <CircularProgress size={20} /> : <CreateNewFolderIcon />}
-          size="large"
-          fullWidth
-        >
-          {isLoading ? 'Initializing...' : 'Initialize Database'}
-        </Button>
+        <Box display="flex" flexDirection="column" width="100%" gap={2}>
+          <Button
+            onClick={handleInitialize}
+            variant="contained"
+            disabled={isLoading || !isFileSystemSupported}
+            startIcon={isLoading ? <CircularProgress size={20} /> : <CreateNewFolderIcon />}
+            size="large"
+            fullWidth
+          >
+            {isLoading ? 'Initializing...' : 'Initialize Database'}
+          </Button>
+
+          {showFallbackOption && (
+            <Box>
+              <Typography variant="body2" color="text.secondary" textAlign="center" mb={1}>
+                Having trouble? Try these options:
+              </Typography>
+              <Box display="flex" gap={1} justifyContent="center">
+                <Button
+                  onClick={handleFallbackMode}
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  size="small"
+                  disabled={isLoading}
+                >
+                  Refresh Page
+                </Button>
+                <Button
+                  onClick={() => window.location.href = window.location.href + '?fallback=true'}
+                  variant="outlined" 
+                  startIcon={<MemoryIcon />}
+                  size="small"
+                  disabled={isLoading}
+                >
+                  Use Memory Mode
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </Box>
       </DialogActions>
     </Dialog>
   );

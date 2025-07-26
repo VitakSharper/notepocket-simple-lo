@@ -4,6 +4,7 @@ import { Note, Folder } from '../lib/types';
 // Import database adapter
 import {
   initializeDatabase,
+  upgradeToSqlite,
   createNote as createNoteDB,
   updateNote as updateNoteDB,
   deleteNote as deleteNoteDB,
@@ -15,7 +16,7 @@ import {
   closeDatabase,
   forceSaveDatabase,
   getDatabaseStatus
-} from '../lib/database/adapter';
+} from '../lib/database/simplifiedAdapter';
 
 interface DatabaseState {
   notes: Note[];
@@ -254,15 +255,26 @@ export function useLocalDatabase() {
     }
   }, [refreshData]);
 
-  // Force save database
-  const saveDatabase = useCallback(async () => {
+  // Upgrade to SQLite file storage
+  const upgradeToFileStorage = useCallback(async () => {
     try {
-      await forceSaveDatabase();
-    } catch (error: any) {
-      console.error('Failed to save database:', error);
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      await upgradeToSqlite();
+      
+      const databaseStatus = getDatabaseStatus();
       setState(prev => ({
         ...prev,
-        error: error.message || 'Failed to save database'
+        isLoading: false,
+        error: null,
+        databaseStatus
+      }));
+    } catch (error: any) {
+      console.error('Failed to upgrade to file storage:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || 'Failed to upgrade to file storage'
       }));
       throw error;
     }
@@ -276,6 +288,20 @@ export function useLocalDatabase() {
     return () => {
       closeDatabase();
     };
+  }, []);
+
+  // Force save database
+  const saveDatabase = useCallback(async () => {
+    try {
+      await forceSaveDatabase();
+    } catch (error: any) {
+      console.error('Failed to save database:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'Failed to save database'
+      }));
+      throw error;
+    }
   }, []);
 
   // Auto-save every 30 seconds
@@ -309,6 +335,7 @@ export function useLocalDatabase() {
     clearError,
     importData,
     saveDatabase,
+    upgradeToFileStorage,
     refreshData,
     initialize,
     databaseStatus: state.databaseStatus

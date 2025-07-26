@@ -1,15 +1,18 @@
-// Dynamic import for SQL.js to avoid module resolution issues
-let initSqlJs: any;
+// Dynamic import for SQL.js to avoid blocking issues
+let initSqlJs: any = null;
 
 async function loadSqlJs() {
   if (!initSqlJs) {
     try {
-      // Try different import methods for SQL.js
       const sqlModule = await import('sql.js');
-      initSqlJs = sqlModule.default || sqlModule;
+      initSqlJs = sqlModule.default;
+      
+      if (!initSqlJs) {
+        throw new Error('SQL.js module not found');
+      }
     } catch (error) {
-      console.error('Failed to load SQL.js module:', error);
-      throw new Error('SQL.js is not available. Using fallback database.');
+      console.error('Failed to load SQL.js:', error);
+      throw new Error('SQL.js module could not be loaded');
     }
   }
   return initSqlJs;
@@ -44,13 +47,21 @@ let fileHandle: FileSystemFileHandle | null = null;
 async function initSQL(): Promise<SqlJsStatic> {
   if (!SQL) {
     try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('SQL.js initialization timed out')), 10000);
+      });
+
       const sqlJsInit = await loadSqlJs();
-      SQL = await sqlJsInit({
+      const initPromise = sqlJsInit({
         // Use WASM files from public directory
         locateFile: (file: string) => {
+          console.log('Locating file:', file);
           return `/${file}`;
         }
       });
+
+      SQL = await Promise.race([initPromise, timeoutPromise]) as SqlJsStatic;
+      console.log('SQL.js initialized successfully');
     } catch (error) {
       console.error('Failed to initialize SQL.js:', error);
       throw new Error('Failed to load SQLite WebAssembly module. Please make sure your browser supports WebAssembly.');
@@ -169,42 +180,69 @@ export async function initializeDatabase(): Promise<void> {
       throw new Error('File System Access API is not supported in this browser. Please use a modern browser like Chrome, Edge, or Safari.');
     }
 
-    // Try to open existing database file
-    try {
-      const [handle] = await (window as any).showOpenFilePicker({
-        types: [{
-          description: 'NotePocket Database',
-          accept: { 'application/x-sqlite3': ['.db', '.sqlite', '.sqlite3'] }
-        }],
-        excludeAcceptAllOption: true,
-        multiple: false
-      });
+    console.log('Starting database initialization...');
 
-      fileHandle = handle;
-      db = await loadDatabase(handle);
-    } catch (openError) {
-      // User cancelled or no file selected, create new database
-      console.log('Creating new database...');
-      
-      // Ask user where to save the new database
-      fileHandle = await (window as any).showSaveFilePicker({
-        suggestedName: 'notepocket.db',
-        types: [{
-          description: 'NotePocket Database',
-          accept: { 'application/x-sqlite3': ['.db', '.sqlite', '.sqlite3'] }
-        }]
-      });
+    // Add timeout to prevent freezing
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database initialization timed out')), 30000);
+    });
 
-      db = await createNewDatabase();
-      await saveDatabase();
-      
-      // Initialize demo data for new database
-      await initializeDemoDataIfEmpty();
-    }
+    const initPromise = async () => {
+      // Try to open existing database file
+      try {
+        console.log('Prompting user to select existing database...');
+        const fileHandles = await (window as any).showOpenFilePicker({
+          types: [{
+            description: 'NotePocket Database',
+            accept: { 'application/x-sqlite3': ['.db', '.sqlite', '.sqlite3'] }
+          }],
+          excludeAcceptAllOption: true,
+          multiple: false
+        });
 
+        if (!fileHandles || fileHandles.length === 0) {
+          throw new Error('No file selected');
+        }
+
+        fileHandle = fileHandles[0];
+        console.log('Loading existing database...');
+        db = await loadDatabase(fileHandle);
+        console.log('Existing database loaded successfully');
+      } catch (openError: any) {
+        console.log('No existing database selected, creating new one...', openError.message);
+        
+        // User cancelled first dialog or error occurred, try to create new database
+        if (openError.name === 'AbortError') {
+          console.log('User cancelled file selection, prompting for new database location...');
+        }
+        
+        // Ask user where to save the new database
+        console.log('Prompting user to choose location for new database...');
+        fileHandle = await (window as any).showSaveFilePicker({
+          suggestedName: 'notepocket.db',
+          types: [{
+            description: 'NotePocket Database',
+            accept: { 'application/x-sqlite3': ['.db', '.sqlite', '.sqlite3'] }
+          }]
+        });
+
+        console.log('Creating new database...');
+        db = await createNewDatabase();
+        await saveDatabase();
+        console.log('New database created and saved');
+        
+        // Initialize demo data for new database
+        await initializeDemoDataIfEmpty();
+      }
+    };
+
+    await Promise.race([initPromise(), timeoutPromise]);
     console.log('Database initialized successfully');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to initialize database:', error);
+    if (error.name === 'AbortError') {
+      throw new Error('Database setup was cancelled. Please refresh the page to try again.');
+    }
     throw error;
   }
 }

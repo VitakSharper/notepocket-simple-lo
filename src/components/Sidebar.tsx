@@ -42,6 +42,8 @@ interface SidebarProps {
   favoriteCount: number;
   notes: Note[];
   onImport?: (data: ExportData) => Promise<void>;
+  onUpgradeToFileStorage?: () => Promise<void>;
+  databaseStatus?: { usingSqlite: boolean; initialized: boolean };
 }
 
 const FOLDER_COLORS = [
@@ -61,6 +63,8 @@ export function Sidebar({
   favoriteCount,
   notes,
   onImport,
+  onUpgradeToFileStorage,
+  databaseStatus
 }: SidebarProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -179,6 +183,33 @@ export function Sidebar({
               onImport={onImport}
             />
           </ListItem>
+
+          {/* Database Upgrade Option */}
+          {databaseStatus && !databaseStatus.usingSqlite && onUpgradeToFileStorage && (
+            <ListItem disablePadding>
+              <ListItemButton 
+                onClick={onUpgradeToFileStorage}
+                sx={{ 
+                  borderRadius: 1, 
+                  mb: 1,
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '&:hover': {
+                    bgcolor: 'primary.dark'
+                  }
+                }}
+              >
+                <ListItemIcon sx={{ color: 'inherit' }}>
+                  <FolderIcon />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Save to File" 
+                  secondary="Upgrade to file storage"
+                  secondaryTypographyProps={{ sx: { color: 'primary.contrastText', opacity: 0.8 } }}
+                />
+              </ListItemButton>
+            </ListItem>
+          )}
 
           {/* Folders Section */}
           <ListItem sx={{ py: 2 }}>
